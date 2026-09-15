@@ -15,7 +15,6 @@ dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
     "h5py~=3.10.0",
-    "hdwig~=0.1",
     "intervaltree~=3.1.0",
     "joblib~=1.1.1",
     "matplotlib~=3.7.1",
@@ -43,6 +42,12 @@ dev = [
     "black~=23.12.1",
     "pytest~=7.4.4",
     "ruff~=0.1.11",
+]
+
+hdwig = [
+    # Internal, not on PyPI. Only hound_data_read needs it (.hw/.w5 coverage
+    # files), and it imports lazily, so the base install stays resolvable.
+    "hdwig @ git+https://github.com/calico/hdwig.git",
 ]
 
 gpu = [

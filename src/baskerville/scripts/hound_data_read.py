@@ -19,7 +19,6 @@ import os
 import sys
 
 import h5py
-import hdwig
 import intervaltree
 import numpy as np
 import pandas as pd
@@ -364,6 +363,9 @@ class CovFace:
             self.bigwig = True
 
         elif cov_ext in [".hw", ".h5", ".hdf5", ".w5", ".wdf5"]:
+            # lazy: hdwig is optional and internal (pip install "baskerville[hdwig]")
+            import hdwig
+
             self.cov_open = hdwig.open(self.cov_file)
             self.hdwig = True
 
