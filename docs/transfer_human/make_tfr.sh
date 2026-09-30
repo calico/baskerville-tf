@@ -21,4 +21,6 @@ DOPTS="-c $CROP -d 2 -f $FOLDS -l $LENGTH -p 32 -r 256 --umap_clip 0.5 -w $WIDTH
 # copy sequence contigs, mappability and train/val/test split.
 mkdir $OUT
 cp ${CONTIGDATA}/* $OUT
-hound_data.py --restart $DOPTS -b $BLACK_HUMAN -o $OUT $FASTA_HUMAN -u $OUT/umap_human.bed targets.txt
+
+# by default, hound_data is run on slurm system, specify --local to run on local machine.
+hound_data.py --restart $DOPTS --local -b $BLACK_HUMAN -o $OUT $FASTA_HUMAN -u $OUT/umap_human.bed targets.txt

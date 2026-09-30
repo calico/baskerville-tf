@@ -67,7 +67,7 @@ def main():
     parser.add_option(
         "-g",
         dest="genes_gtf",
-        default="%s/genes/gencode41/gencode41_basic_nort.gtf" % os.environ["HG38"],
+        default="%s/genes/gencode41/gencode41_basic_nort.gtf" % os.environ.get("HG38", "/path/to/hg38"),
         help="GTF for gene definition [Default %default]",
     )
     parser.add_option(

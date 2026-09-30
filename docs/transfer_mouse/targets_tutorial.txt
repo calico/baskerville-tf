@@ -1,0 +1,9 @@
+	identifier	file	clip	clip_soft	scale	sum_stat	strand_pair	description
+0	CNhs12956+	/scratch5/drk/tillage/datasets/mouse/cage/fantom/CNhs12956/summary/coverage+.w5	768	384	1.0	sum	1	CAGE:cerebellum, embryo E11, biol_ (E11R1)
+1	CNhs12956-	/scratch5/drk/tillage/datasets/mouse/cage/fantom/CNhs12956/summary/coverage-.w5	768	384	1.0	sum	0	CAGE:cerebellum, embryo E11, biol_ (E11R1)
+2	ENCFF327SCP	/scratch5/drk/tillage/datasets/mouse/dnase/encode/ENCSR773SAG/summary/coverage.w5	128	32	2.0	mean	2	DNASE:C57BL/6 midbrain embryo (10.50 days)
+3	ENCFF197CLN	/scratch5/drk/tillage/datasets/mouse/chip/encode/ENCSR581EJK/summary/ENCFF197CLN.w5	128	32	2.0	mean	3	CHIP:H3K4me3:C57BL/6 midbrain embryo (10.5 days)
+4	ENCFF242FBC	/scratch5/drk/tillage/datasets/mouse/atac/encode/ENCSR096JCC/summary/coverage.w5	128	32	2.0	mean	4	ATAC:C57BL/6 midbrain embryo (16.5 days)
+5	ENCFF889QAK	/scratch5/drk/tillage/datasets/mouse/atac/encode/ENCSR382RUC/summary/coverage.w5	128	32	2.0	mean	5	ATAC:C57BL/6 midbrain embryo (11.5 days)
+6	ENCFF686AKO	/scratch5/drk/tillage/datasets/mouse/rna/encode/ENCSR764OPZ/summary/coverage.w5	768	384	0.3	sum_sqrt	6	RNA:B6NCrl midbrain tissue embryo (10.5 days)
+7	ENCFF762UWA	/scratch5/drk/tillage/datasets/mouse/rna/encode/ENCSR557RMA/summary/coverage.w5	768	384	0.3	sum_sqrt	7	RNA:B6NCrl midbrain tissue embryo (15.5 days)

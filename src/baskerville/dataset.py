@@ -321,16 +321,25 @@ def make_strand_transform(targets_df, targets_strand_df):
     # initialize sparse matrix
     strand_transform = dok_matrix((targets_df.shape[0], targets_strand_df.shape[0]))
 
+    # track which strand pairs we've seen
+    seen_pairs = set()
+
     # fill in matrix
     ti = 0
     sti = 0
     for _, target in targets_df.iterrows():
         strand_transform[ti, sti] = True
         if target.strand_pair == target.name:
+            # Unstranded target
             sti += 1
         else:
-            if target.identifier[-1] == "-":
+            # Stranded target - check if we've seen its pair
+            if target.strand_pair in seen_pairs:
+                # This is the second member of the pair, increment sti
                 sti += 1
+            else:
+                # This is the first member of the pair, mark it as seen
+                seen_pairs.add(target.name)
         ti += 1
 
     return strand_transform

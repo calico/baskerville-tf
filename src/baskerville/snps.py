@@ -624,6 +624,10 @@ def compute_scores(ref_preds, alt_preds, snp_stats, strand_transform=None):
     ref_preds_sqrt_sum = ref_preds_sqrt.sum(axis=(0, 1)) / num_shifts
     alt_preds_sqrt_sum = alt_preds_sqrt.sum(axis=(0, 1)) / num_shifts
 
+    # SED computation (sum first, then log)
+    ref_preds_log_sed = np.log2(ref_preds.sum(axis=1) + 1).mean(axis=0)
+    alt_preds_log_sed = np.log2(alt_preds.sum(axis=1) + 1).mean(axis=0)
+
     # difference
     altref_diff = alt_preds - ref_preds
     altref_log_diff = alt_preds_log - ref_preds_log
@@ -650,6 +654,9 @@ def compute_scores(ref_preds, alt_preds, snp_stats, strand_transform=None):
     if "logSUM" in snp_stats:
         log_sad = alt_preds_log_sum - ref_preds_log_sum
         strand_clip_save("logSUM", log_sad)
+    if "logSED" in snp_stats:
+        log_sed = alt_preds_log_sed - ref_preds_log_sed
+        strand_clip_save("logSED", log_sed)
     if "sqrtSUM" in snp_stats:
         sqrt_sad = alt_preds_sqrt_sum - ref_preds_sqrt_sum
         strand_clip_save("sqrtSUM", sqrt_sad)

@@ -31,6 +31,36 @@ hound_snp.py
 Compute variant effect predictions for SNPs in a VCF file.
 """
 
+"""
+Available statistics for variant effect prediction (--stats parameter):
+
+Basic Sum-based Scores:
+- SUM: Direct subtraction of alternative from reference predictions, summed across sequence length.
+- logSUM: First applies log2(x+1) to bin, then sums across sequence length and averages across shifts.
+- logSED: First sums across sequence length, then applies log2(x+1), and finally averages across shifts.
+- sqrtSUM: First square-root each bin, then sum across sequence length and averages across shifts.
+
+Maximum Effect Scores:
+- SAX: Maximum Absolute Effect - finds position of maximum difference and reports that value
+
+Distance/Norm-based Scores:
+- D1: L1 (Manhattan) distance between alt and ref predictions
+- logD1: L1 distance between log-transformed predictions
+- sqrtD1: L1 distance between sqrt-transformed predictions
+- D2: L2 (Euclidean) distance between alt and ref predictions
+- logD2: L2 distance between log-transformed predictions  
+- sqrtD2: L2 distance between sqrt-transformed predictions
+
+Information Theory Scores:
+- JS: Jensen-Shannon divergence between normalized predictions
+- logJS: Jensen-Shannon divergence between log-transformed normalized predictions
+
+Notes:
+- All scores are averaged across prediction shifts if multiple shifts are used
+- Log transformations use log2(x+1) to handle zeros
+- Scores can be specified as comma-separated list via --stats parameter
+- Default statistic is "logSUM"
+"""
 
 def main():
     usage = "usage: %prog [options] <params_file> <model_file> <vcf_file>"
