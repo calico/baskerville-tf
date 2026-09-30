@@ -17,7 +17,6 @@ from optparse import OptionParser
 import collections
 import gzip
 import heapq
-import pdb
 import os
 import random
 import sys
@@ -523,7 +522,6 @@ def break_large_contigs(contigs, break_t, verbose=False):
 
     ctg_len = break_t + 1
     while ctg_len > break_t:
-
         # pop largest contig
         ctg_nlen, ctg = heapq.heappop(contig_heapq)
         ctg_len = -ctg_nlen

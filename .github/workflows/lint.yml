@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "**.py"
+      - "pyproject.toml"
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python3 -m pip install black~=23.12.1 ruff~=0.1.11
+
+      - name: Check Black formatting
+        run: black --check .
+
+      - name: Ruff
+        run: ruff check src tests

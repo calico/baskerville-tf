@@ -1,5 +1,5 @@
-Welcome to baskerville's documentation!
-=======================================
+Welcome to baskerville-tf's documentation!
+==========================================
 
 .. toctree::
    :maxdepth: 4

@@ -1,18 +1,9 @@
-import argparse
 import json
-import os
-import shutil
 import re
 import h5py
 
-import numpy as np
-import pandas as pd
 import tensorflow as tf
-from tensorflow.keras import mixed_precision
 
-from baskerville import dataset
-from baskerville import seqnn
-from baskerville import trainer
 from baskerville import layers
 from baskerville import adapters
 
@@ -90,7 +81,6 @@ def var_reorder(weight_h5):
 def modify_json(
     input_json, output_json, adapter, latent=8, se_rank=None, conv_select=None
 ):
-
     with open(input_json) as params_open:
         params = json.load(params_open)
 
@@ -144,11 +134,9 @@ def add_houlsby(input_model, strand_pair, latent_size=8):
     layer_output_dict_new = {}  # the output tensor of each layer in the new graph
     layer_output_dict_new.update({input_model.layers[0].name: input_model.input})
     # Iterate over all layers after the input
-    model_outputs = []
     reverse_bool = None
 
     for layer in input_model.layers[1:-1]:
-
         # parent layers
         parent_layers = layer_parent_dict_old[layer.name]
 
@@ -270,7 +258,6 @@ def add_lora(input_model, rank=8, alpha=16, mode="default", report_param=True):
 # lora layers #
 ###############
 def add_lora_conv(input_model, conv_select=None):
-
     # add lora layers
     add_lora(input_model, rank=8, alpha=16, mode="default", report_param=False)
 
@@ -335,7 +322,6 @@ def merge_lora(input_model):
 # IA3 layers #
 ##############
 def add_ia3(input_model, strand_pair):
-
     # add to kv layers #
     for layer in input_model.layers:
         if re.match("multihead_attention", layer.name):
@@ -356,10 +342,8 @@ def add_ia3(input_model, strand_pair):
     layer_output_dict_new.update({input_model.layers[0].name: input_model.input})
 
     # Iterate over all layers after the input
-    model_outputs = []
     reverse_bool = None
     for layer in input_model.layers[1:-1]:
-
         # get layer inputs
         parent_layers = layer_parent_dict_old[layer.name]
         layer_input = [layer_output_dict_new[parent] for parent in parent_layers]
@@ -444,7 +428,6 @@ def merge_ia3(original_model, ia3_model):
 # add locon #
 #############
 def add_locon(input_model, strand_pair, conv_select=None, rank=4, alpha=1):
-
     # first add lora to attention
     add_lora(input_model, report_param=False)
 
@@ -486,10 +469,8 @@ def add_locon(input_model, strand_pair, conv_select=None, rank=4, alpha=1):
     layer_output_dict_new.update({input_model.layers[0].name: input_model.input})
 
     # Iterate over all layers after the input
-    model_outputs = []
     reverse_bool = None
     for layer in input_model.layers[1:-1]:
-
         # get layer inputs
         parent_layers = layer_parent_dict_old[layer.name]
         layer_input = [layer_output_dict_new[parent] for parent in parent_layers]
@@ -554,7 +535,6 @@ def locon_increment(layer):
 def merge_locon(original_model, locon_model):
     # original model contains pre-trained weights
     for i, layer in enumerate(original_model.layers):
-
         # lora layers
         if re.match("multihead_attention", layer.name):
             q = locon_model.layers[i]._q_layer
@@ -631,11 +611,9 @@ def add_houlsby_se(
     layer_output_dict_new = {}  # the output tensor of each layer in the new graph
     layer_output_dict_new.update({input_model.layers[0].name: input_model.input})
     # Iterate over all layers after the input
-    model_outputs = []
     reverse_bool = None
 
     for layer in input_model.layers[1:-1]:
-
         # parent layers
         parent_layers = layer_parent_dict_old[layer.name]
 

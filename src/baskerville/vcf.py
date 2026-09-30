@@ -14,7 +14,6 @@
 # =========================================================================
 import gzip
 import os
-import pdb
 import subprocess
 import sys
 import tempfile

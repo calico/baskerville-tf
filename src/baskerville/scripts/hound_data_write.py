@@ -19,7 +19,6 @@ import sys
 
 import h5py
 import numpy as np
-import pdb
 import pysam
 import tensorflow as tf
 

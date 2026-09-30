@@ -457,14 +457,12 @@ def map_delseq_genes(
     snpseq_gene_slice = OrderedDict()
 
     for overlap in genes_bedt.intersect(snpseq_bedt, wo=True):
-
         # print("Overlap:", overlap)
         gene_id = overlap[3]
         gene_start = int(overlap[1])
         gene_end = int(overlap[2])
         seq_start = int(overlap[7])
         seq_end = int(overlap[8])
-        si = int(overlap[9])
 
         # adjust for left overhang padded
         seq_len_chop = seq_end - seq_start

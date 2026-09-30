@@ -99,8 +99,6 @@ def collect_h5_borzoi(out_dir, num_procs, sad_stat) -> None:
         job_h5_file = "%s/job%d/%s" % (out_dir, pi, h5_file)
         job_h5_open = h5py.File(job_h5_file, "r")
         num_seqs += job_h5_open[sad_stat].shape[0]
-        seq_len = job_h5_open[sad_stat].shape[1]
-        num_targets = job_h5_open[sad_stat].shape[-1]
         job_h5_open.close()
 
     # initialize final h5

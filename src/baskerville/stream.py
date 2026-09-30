@@ -13,12 +13,9 @@
 # limitations under the License.
 # =========================================================================
 from __future__ import print_function
-import pdb
 
 import numpy as np
 import tensorflow as tf
-
-from baskerville import dna
 
 
 class PredStreamGen:

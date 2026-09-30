@@ -1,51 +1,38 @@
-name: Baskerville Docs
+name: baskerville-tf Docs
 
 on:
   workflow_dispatch:
-    inputs:
-      python-version:
-        default: "3.10"
-        required: false
-        type: string
-
-defaults:
-  run:
-    shell: bash
 
 permissions:
   contents: write
+
 jobs:
   docs:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
-    steps:
-      - uses: actions/checkout@v3
+    runs-on: ubuntu-latest
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-      # You can test your matrix by printing the current Python version
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
+          python-version: "3.10"
+
       - name: Install dependencies
-        run: |
-          cd ${{ github.workspace }}/src/docs
-          pip install -r requirements.txt
+        run: python3 -m pip install '.[docs]'
+
       - name: Sphinx build
         run: |
-          cd ${{ github.workspace }}/src/docs/source
+          cd src/docs/source
           rm -f *.rst make.bat
-          cd ${{ github.workspace }}/src
-          sphinx-apidoc -F -a -o docs/source baskerville
-          cd ${{ github.workspace }}/src/docs
+          cd ../..
+          sphinx-apidoc -F -a -H baskerville-tf -o docs/source baskerville
+          cd docs
           make html
+
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ github.workspace }}/src/docs/build/html
+          publish_dir: src/docs/build/html
           force_orphan: true

@@ -1,6 +1,5 @@
 import concurrent
 import json
-import pdb
 import sys
 
 import h5py
@@ -584,6 +583,7 @@ def cluster_snps(snps, seq_len: int, center_pct: float):
 
     snp_clusters = []
     cluster_chr = None
+    cluster_pos0 = None
 
     for snp in snps:
         if snp.chr == cluster_chr and snp.pos < cluster_pos0 + valid_snp_distance:

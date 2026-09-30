@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 from qnorm import quantile_normalize
 from scipy.stats import pearsonr
-import tensorflow as tf
 from tensorflow.keras import mixed_precision
 
 from baskerville import dataset

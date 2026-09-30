@@ -229,7 +229,6 @@ def main():
             seq_cov = options.scale * seq_cov
 
         else:  # apply new (updated) transform
-
             # scale
             seq_cov_nt = options.scale * seq_cov_nt
 
@@ -363,7 +362,7 @@ class CovFace:
             self.bigwig = True
 
         elif cov_ext in [".hw", ".h5", ".hdf5", ".w5", ".wdf5"]:
-            # lazy: hdwig is optional and internal (pip install "baskerville[hdwig]")
+            # lazy: hdwig is optional and internal (pip install "baskerville-tf[hdwig]")
             import hdwig
 
             self.cov_open = hdwig.open(self.cov_file)

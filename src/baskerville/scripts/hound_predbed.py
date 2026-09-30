@@ -16,7 +16,6 @@
 import argparse
 import json
 import os
-import pdb
 
 import h5py
 import numpy as np
@@ -178,7 +177,7 @@ def main():
         seqnn_model.build_embed(args.embed_layer)
     _, preds_length, preds_depth = seqnn_model.model.output.shape
 
-    if type(preds_length) == tf.compat.v1.Dimension:
+    if isinstance(preds_length, tf.compat.v1.Dimension):
         preds_length = preds_length.value
         preds_depth = preds_depth.value
 

@@ -3,16 +3,16 @@ requires = ["setuptools>=69.0.3", "setuptools_scm>=8.0.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "baskerville"
-description = "baskerville"
+name = "baskerville-tf"
+description = "TensorFlow sequence-to-activity models for regulatory genomics (superseded by the PyTorch baskerville)"
 authors = [
     {name = "Calico f(DNA)", email = "drk@calicolabs.com"},
 ]
 readme = "README.md"
-classifiers = ["License :: OSI Approved :: MIT License"]
+classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version"]
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "h5py~=3.10.0",
     "intervaltree~=3.1.0",
@@ -44,6 +44,12 @@ dev = [
     "ruff~=0.1.11",
 ]
 
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinxcontrib-apidoc",
+]
+
 hdwig = [
     # Internal, not on PyPI. Only hound_data_read needs it (.hw/.w5 coverage
     # files), and it imports lazily, so the base install stays resolvable.
@@ -55,6 +61,12 @@ gpu = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/calico/baskerville"
+Homepage = "https://github.com/calico/baskerville-tf"
 
 [tool.setuptools_scm]
+
+[tool.ruff.lint]
+ignore = ["E731", "E741", "F403", "F405"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/baskerville/helpers/trt_optimized_model.py" = ["E722"]

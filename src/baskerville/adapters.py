@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =========================================================================
-import pdb
-import sys
-from typing import Optional, List
 
-import numpy as np
 import tensorflow as tf
 
 gpu_devices = tf.config.experimental.list_physical_devices("GPU")
@@ -32,7 +28,6 @@ class IA3(tf.keras.layers.Layer):
     # ia3 module for attention layer, scale output.
 
     def __init__(self, original_layer, trainable=False, **kwargs):
-
         # keep the name of this layer the same as the original dense layer.
         original_layer_config = original_layer.get_config()
         name = original_layer_config["name"]
@@ -73,7 +68,6 @@ class IA3_ff(tf.keras.layers.Layer):
     # ia3 module for down-projection ff layer, scale input.
 
     def __init__(self, original_layer, trainable=False, **kwargs):
-
         # keep the name of this layer the same as the original dense layer.
         original_layer_config = original_layer.get_config()
         name = original_layer_config["name"]
@@ -111,7 +105,6 @@ class Lora(tf.keras.layers.Layer):
     # https://github.com/Elvenson/stable-diffusion-keras-ft/blob/main/layers.py
 
     def __init__(self, original_layer, rank=8, alpha=16, trainable=False, **kwargs):
-
         # keep the name of this layer the same as the original dense layer.
         original_layer_config = original_layer.get_config()
         name = original_layer_config["name"]
@@ -169,7 +162,6 @@ class Locon(tf.keras.layers.Layer):
     # use default alpha and rank for locon
 
     def __init__(self, original_layer, rank=4, alpha=1, trainable=False, **kwargs):
-
         # keep the name of this layer the same as the original conv layer.
         original_layer_config = original_layer.get_config()
         name = original_layer_config["name"]
@@ -190,7 +182,6 @@ class Locon(tf.keras.layers.Layer):
         self.original_layer = original_layer
         self.original_layer.trainable = False
 
-        input_dim = original_layer.input_shape[-1]
         output_dim = original_layer_config["filters"]
         kernel_size = original_layer_config["kernel_size"][0]
         stride = original_layer_config["strides"][0]

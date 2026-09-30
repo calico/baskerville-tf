@@ -14,7 +14,6 @@
 # limitations under the License.
 # =========================================================================
 from optparse import OptionParser
-import pdb
 import os
 from baskerville.snps import score_snps
 import tempfile

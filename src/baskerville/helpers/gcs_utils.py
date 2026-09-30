@@ -4,7 +4,6 @@
 
 import os
 import logging
-import pdb
 from base64 import b64decode
 from json import loads
 from os.path import exists, join, isfile
@@ -76,7 +75,6 @@ def download_folder_from_gcs(gcs_dir: str, local_dir: str, bytes=True) -> None:
 
     """
     storage_client = _get_storage_client()
-    write_mode = "wb" if bytes else "w"
     if not is_gcs_path(gcs_dir):
         raise ValueError(f"gcs_dir is not a valid GCS path: {gcs_dir}")
     bucket_name, gcs_object_prefix = split_gcs_uri(gcs_dir)

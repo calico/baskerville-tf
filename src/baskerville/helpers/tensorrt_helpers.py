@@ -1,6 +1,5 @@
 import argparse
 import json
-import pdb
 import time
 
 import numpy as np
@@ -28,7 +27,7 @@ class ModelOptimizer:
     def __init__(self, input_saved_model_dir, calibration_data=None):
         self.input_saved_model_dir = input_saved_model_dir
         self.calibration_data = None
-        if not calibration_data is None:
+        if calibration_data is not None:
             self.set_calibration_data(calibration_data)
 
     def set_calibration_data(self, calibration_data):

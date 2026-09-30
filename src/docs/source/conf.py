@@ -5,21 +5,13 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-import os
 import sys
-
-# This root should be where docs folder is visible.
-sys.path.insert(0, os.path.abspath("../.."))
-sys.path.insert(0, os.path.abspath("../../baskerville"))
-sys.path.insert(0, os.path.abspath("../../baskerville/scripts"))
-sys.path.insert(0, os.path.abspath("../../bashkerville/helpers"))
 
 sys.setrecursionlimit(1500)
 
-project = "baskerville"
-copyright = "2023, David Kelly"
-author = "David Kelly"
-release = "0.0.1"
+project = "baskerville-tf"
+copyright = "2023, Calico LLC"
+author = "David Kelley"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
