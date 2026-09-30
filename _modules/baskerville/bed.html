@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.bed &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.bed</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.bed</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dna</span>
+
+<span class="c1">################################################################################</span>
+<span class="c1"># bed.py</span>
+<span class="c1">#</span>
+<span class="c1"># Methods to work with BED files.</span>
+<span class="c1">################################################################################</span>
+
+
+<div class="viewcode-block" id="make_bed_seqs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.bed.make_bed_seqs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_bed_seqs</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="n">fasta_file</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">stranded</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return BED regions as sequences and regions as a list of coordinate</span>
+<span class="sd">    tuples, extended to a specified length."""</span>
+    <span class="n">fasta_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+
+    <span class="n">seqs_dna</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seqs_coords</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">strand</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">strand</span> <span class="o">=</span> <span class="s2">"+"</span>
+
+        <span class="c1"># determine sequence limits</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">end</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">seq_len</span>
+
+        <span class="c1"># save</span>
+        <span class="k">if</span> <span class="n">stranded</span><span class="p">:</span>
+            <span class="n">seqs_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">,</span> <span class="n">strand</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seqs_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">))</span>
+
+        <span class="c1"># initialize sequence</span>
+        <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">""</span>
+
+        <span class="c1"># add N's for left over reach</span>
+        <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"Adding </span><span class="si">%d</span><span class="s2"> Ns to </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">,</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">)</span>
+            <span class="n">seq_start</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># get dna</span>
+        <span class="n">seq_dna</span> <span class="o">+=</span> <span class="n">fasta_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># add N's for right over reach</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"Adding </span><span class="si">%d</span><span class="s2"> Ns to </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">),</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">seq_dna</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">))</span>
+
+        <span class="c1"># reverse complement</span>
+        <span class="k">if</span> <span class="n">stranded</span> <span class="ow">and</span> <span class="n">strand</span> <span class="o">==</span> <span class="s2">"-"</span><span class="p">:</span>
+            <span class="n">seq_dna</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">dna_rc</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span>
+
+        <span class="c1"># append</span>
+        <span class="n">seqs_dna</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span>
+
+    <span class="n">fasta_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">seqs_dna</span><span class="p">,</span> <span class="n">seqs_coords</span></div>
+
+
+
+<div class="viewcode-block" id="make_ntwise_bed_seqs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.bed.make_ntwise_bed_seqs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_ntwise_bed_seqs</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="n">fasta_file</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">stranded</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return BED regions as a list of sequences centered at every nucleotide of the</span>
+<span class="sd">    bed entry, and regions as a list of coordinate tuples, extended to a specified length.</span>
+<span class="sd">    """</span>
+    <span class="n">fasta_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+
+    <span class="n">seqs_dna</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">seqs_coords</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">ism_lengths</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">il</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">)):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">strand</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">strand</span> <span class="o">=</span> <span class="s2">"+"</span>
+
+        <span class="n">num_pos</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+
+        <span class="n">seqs_dna</span><span class="p">[</span><span class="n">il</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">seqs_coords</span><span class="p">[</span><span class="n">il</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">ni</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pos</span><span class="p">):</span>
+            <span class="c1"># determine sequence limits</span>
+            <span class="n">mid</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">ni</span>
+            <span class="n">seq_start</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">seq_end</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">seq_len</span>
+
+            <span class="c1"># save</span>
+            <span class="k">if</span> <span class="n">stranded</span><span class="p">:</span>
+                <span class="n">seqs_coords</span><span class="p">[</span><span class="n">il</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">,</span> <span class="n">strand</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">seqs_coords</span><span class="p">[</span><span class="n">il</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">))</span>
+
+            <span class="c1"># initialize sequence</span>
+            <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">""</span>
+
+            <span class="c1"># add N's for left over reach</span>
+            <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"Adding </span><span class="si">%d</span><span class="s2"> Ns to </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">,</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">)</span>
+                <span class="n">seq_start</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="c1"># get dna</span>
+            <span class="n">seq_dna</span> <span class="o">+=</span> <span class="n">fasta_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+            <span class="c1"># add N's for right over reach</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"Adding </span><span class="si">%d</span><span class="s2"> Ns to </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%s</span><span class="s2">"</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">),</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">seq_dna</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">))</span>
+
+            <span class="c1"># reverse complement</span>
+            <span class="k">if</span> <span class="n">stranded</span> <span class="ow">and</span> <span class="n">strand</span> <span class="o">==</span> <span class="s2">"-"</span><span class="p">:</span>
+                <span class="n">seq_dna</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">dna_rc</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span>
+
+            <span class="c1"># append</span>
+            <span class="n">seqs_dna</span><span class="p">[</span><span class="n">il</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span>
+
+            <span class="n">ism_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num_pos</span><span class="p">)</span>
+
+    <span class="n">fasta_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">seqs_dna</span><span class="p">,</span> <span class="n">seqs_coords</span><span class="p">,</span> <span class="n">ism_lengths</span></div>
+
+
+
+<div class="viewcode-block" id="read_bed_coords">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.bed.read_bed_coords">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_bed_coords</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return BED regions as a list of coordinate</span>
+<span class="sd">    tuples, extended to a specified length."""</span>
+    <span class="n">seqs_coords</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="c1"># determine sequence limits</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">end</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">seq_len</span>
+
+        <span class="c1"># save</span>
+        <span class="n">seqs_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">chrm</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">seqs_coords</span></div>
+
+
+
+<div class="viewcode-block" id="write_bedgraph">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.bed.write_bedgraph">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_bedgraph</span><span class="p">(</span>
+    <span class="n">preds</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">split_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bedgraph_indexes</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Write BEDgraph files for predictions and targets from a dataset..</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      preds (np.array): Predictions.</span>
+<span class="sd">      targets (np.array): Targets.</span>
+<span class="sd">      data_dir (str): Data directory, for identifying sequences and statistics.</span>
+<span class="sd">      out_dir (str): Output directory.</span>
+<span class="sd">      split_label (str): Split label.</span>
+<span class="sd">      bedgraph_indexes (list): List of target indexes to write.</span>
+<span class="sd">    """</span>
+    <span class="c1"># get shapes</span>
+    <span class="n">num_seqs</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="n">num_targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># set bedgraph indexes</span>
+    <span class="k">if</span> <span class="n">bedgraph_indexes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bedgraph_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_targets</span><span class="p">)</span>
+
+    <span class="c1"># read data parameters</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">/statistics.json"</span> <span class="o">%</span> <span class="n">data_dir</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_open</span><span class="p">:</span>
+        <span class="n">data_stats</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data_open</span><span class="p">)</span>
+        <span class="n">pool_width</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"pool_width"</span><span class="p">]</span>
+
+    <span class="c1"># read sequence positions</span>
+    <span class="n">seqs_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+        <span class="s2">"</span><span class="si">%s</span><span class="s2">/sequences.bed"</span> <span class="o">%</span> <span class="n">data_dir</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"chr"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">,</span> <span class="s2">"split"</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">seqs_df</span> <span class="o">=</span> <span class="n">seqs_df</span><span class="p">[</span><span class="n">seqs_df</span><span class="o">.</span><span class="n">split</span> <span class="o">==</span> <span class="n">split_label</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">seqs_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">num_seqs</span>
+
+    <span class="c1"># initialize output directory</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Writing BEDgraph files"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">bedgraph_indexes</span><span class="p">):</span>
+        <span class="c1"># slice preds/targets</span>
+        <span class="n">preds_ti</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ti</span><span class="p">]</span>
+        <span class="n">targets_ti</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ti</span><span class="p">]</span>
+
+        <span class="c1"># initialize raw predictions/targets</span>
+        <span class="n">preds_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">/preds_t</span><span class="si">%d</span><span class="s2">.bedgraph"</span> <span class="o">%</span> <span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">ti</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span>
+        <span class="n">targets_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">/targets_t</span><span class="si">%d</span><span class="s2">.bedgraph"</span> <span class="o">%</span> <span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">ti</span><span class="p">),</span> <span class="s2">"w"</span><span class="p">)</span>
+
+        <span class="c1"># write raw predictions/targets</span>
+        <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seqs_df</span><span class="o">.</span><span class="n">itertuples</span><span class="p">()):</span>
+            <span class="c1"># write bin values</span>
+            <span class="n">bin_start</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">start</span>
+            <span class="k">for</span> <span class="n">bi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">target_length</span><span class="p">):</span>
+                <span class="n">bin_end</span> <span class="o">=</span> <span class="n">bin_start</span> <span class="o">+</span> <span class="n">pool_width</span>
+                <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">seq</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">bin_start</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">bin_end</span><span class="p">),</span>
+                    <span class="s2">"</span><span class="si">%.2f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">preds_ti</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">bi</span><span class="p">],</span>
+                <span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">preds_out</span><span class="p">)</span>
+                <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">seq</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">bin_start</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">bin_end</span><span class="p">),</span>
+                    <span class="s2">"</span><span class="si">%.2f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">targets_ti</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">bi</span><span class="p">],</span>
+                <span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">targets_out</span><span class="p">)</span>
+                <span class="n">bin_start</span> <span class="o">=</span> <span class="n">bin_end</span>
+
+        <span class="n">preds_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">targets_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

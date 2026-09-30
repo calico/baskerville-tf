@@ -1,0 +1,1429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.seqnn &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.seqnn</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.seqnn</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">blocks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">transfer</span>
+
+
+<div class="viewcode-block" id="SeqNN">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SeqNN</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Sequence neural network model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      params (dict): Model specification and parameters.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_model</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SeqNN.set_defaults">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.set_defaults">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Set default parameters.</span>
+
+<span class="sd">        Only necessary for my bespoke parameters.</span>
+<span class="sd">        Others are best defaulted closer to the source.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">augment_rc</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">augment_shift</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_block">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_block">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">block_params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Construct a SeqNN block.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          current: Current Tensor.</span>
+<span class="sd">          block_params (dict): Block parameters.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          current: New current Tensor.</span>
+<span class="sd">        """</span>
+        <span class="n">block_args</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># extract name</span>
+        <span class="n">block_name</span> <span class="o">=</span> <span class="n">block_params</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+
+        <span class="c1"># save upper_tri flatten</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preds_triu</span> <span class="o">|=</span> <span class="n">block_name</span> <span class="o">==</span> <span class="s2">"upper_tri"</span>
+
+        <span class="c1"># if Keras, get block variables names</span>
+        <span class="n">pass_all_globals</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">block_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isupper</span><span class="p">():</span>
+            <span class="n">pass_all_globals</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">block_func</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">keras_func</span><span class="p">[</span><span class="n">block_name</span><span class="p">]</span>
+            <span class="n">block_varnames</span> <span class="o">=</span> <span class="n">block_func</span><span class="o">.</span><span class="fm">__init__</span><span class="o">.</span><span class="vm">__code__</span><span class="o">.</span><span class="n">co_varnames</span>
+
+        <span class="c1"># set global defaults</span>
+        <span class="n">global_vars</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">"activation"</span><span class="p">,</span>
+            <span class="s2">"batch_norm"</span><span class="p">,</span>
+            <span class="s2">"bn_momentum"</span><span class="p">,</span>
+            <span class="s2">"norm_type"</span><span class="p">,</span>
+            <span class="s2">"l2_scale"</span><span class="p">,</span>
+            <span class="s2">"l1_scale"</span><span class="p">,</span>
+            <span class="s2">"padding"</span><span class="p">,</span>
+            <span class="s2">"kernel_initializer"</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">gv</span> <span class="ow">in</span> <span class="n">global_vars</span><span class="p">:</span>
+            <span class="n">gv_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gv</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">gv_value</span> <span class="ow">and</span> <span class="p">(</span><span class="n">pass_all_globals</span> <span class="ow">or</span> <span class="n">gv</span> <span class="ow">in</span> <span class="n">block_varnames</span><span class="p">):</span>
+                <span class="n">block_args</span><span class="p">[</span><span class="n">gv</span><span class="p">]</span> <span class="o">=</span> <span class="n">gv_value</span>
+
+        <span class="c1"># set remaining params</span>
+        <span class="n">block_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">block_params</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">block_args</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+
+        <span class="c1"># save representations</span>
+        <span class="k">if</span> <span class="n">block_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"tower"</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">block_args</span><span class="p">[</span><span class="s2">"reprs"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reprs</span>
+
+        <span class="c1"># U-net helper</span>
+        <span class="k">if</span> <span class="n">block_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"unet_"</span><span class="p">):</span>
+            <span class="c1"># find matching representation</span>
+            <span class="n">unet_repr</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">seq_repr</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reprs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">seq_repr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">current</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">unet_repr</span> <span class="o">=</span> <span class="n">seq_repr</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">unet_repr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"Could not find matching representation for length </span><span class="si">%d</span><span class="s2">"</span>
+                    <span class="o">%</span> <span class="n">current</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">block_args</span><span class="p">[</span><span class="s2">"unet_repr"</span><span class="p">]</span> <span class="o">=</span> <span class="n">unet_repr</span>
+
+        <span class="c1"># switch for block</span>
+        <span class="k">if</span> <span class="n">block_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">islower</span><span class="p">():</span>
+            <span class="n">block_func</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">name_func</span><span class="p">[</span><span class="n">block_name</span><span class="p">]</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">block_func</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="o">**</span><span class="n">block_args</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">block_func</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">keras_func</span><span class="p">[</span><span class="n">block_name</span><span class="p">]</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">block_func</span><span class="p">(</span><span class="o">**</span><span class="n">block_args</span><span class="p">)(</span><span class="n">current</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">current</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_model">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_reprs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Build the model."""</span>
+
+        <span class="c1">###################################################</span>
+        <span class="c1"># inputs</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">sequence</span>
+
+        <span class="c1"># augmentation</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment_rc</span><span class="p">:</span>
+            <span class="n">current</span><span class="p">,</span> <span class="n">reverse_bool</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">StochasticReverseComplement</span><span class="p">()(</span><span class="n">current</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment_shift</span> <span class="o">!=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">StochasticShift</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">augment_shift</span><span class="p">)(</span><span class="n">current</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preds_triu</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1">###################################################</span>
+        <span class="c1"># build convolution blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reprs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">bi</span><span class="p">,</span> <span class="n">block_params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trunk</span><span class="p">):</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_block</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">block_params</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">save_reprs</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reprs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+
+        <span class="c1"># final activation</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+
+        <span class="c1"># make model trunk</span>
+        <span class="n">trunk_output</span> <span class="o">=</span> <span class="n">current</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_trunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">trunk_output</span><span class="p">)</span>
+
+        <span class="c1">###################################################</span>
+        <span class="c1"># heads</span>
+        <span class="n">head_keys</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"head"</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hk</span><span class="p">)</span> <span class="k">for</span> <span class="n">hk</span> <span class="ow">in</span> <span class="n">head_keys</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">hi</span><span class="p">,</span> <span class="n">head</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="p">[</span><span class="n">head</span><span class="p">]</span>
+
+            <span class="c1"># reset to trunk output</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">trunk_output</span>
+
+            <span class="c1"># build blocks</span>
+            <span class="k">for</span> <span class="n">bi</span><span class="p">,</span> <span class="n">block_params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">head</span><span class="p">):</span>
+                <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_block</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="n">block_params</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">hi</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">):</span>
+                <span class="n">strand_pair</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">[</span><span class="n">hi</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">strand_pair</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># transform back from reverse complement</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment_rc</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preds_triu</span><span class="p">:</span>
+                    <span class="n">current</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverseTriu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_offset</span><span class="p">)(</span>
+                        <span class="p">[</span><span class="n">current</span><span class="p">,</span> <span class="n">reverse_bool</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">current</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)([</span><span class="n">current</span><span class="p">,</span> <span class="n">reverse_bool</span><span class="p">])</span>
+
+            <span class="c1"># save head output</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current</span><span class="p">)</span>
+
+        <span class="c1">###################################################</span>
+        <span class="c1"># compile model(s)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ho</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_output</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">ho</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># add adapter</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"adapter"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">hi</span><span class="p">,</span> <span class="n">head</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">hi</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">hi</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+        <span class="c1"># track pooling/striding and cropping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">track_sequence</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_embed">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_embed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conv_layer_i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Build model to embed sequences into specific layer."""</span>
+        <span class="k">if</span> <span class="n">conv_layer_i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_trunk</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">batch_norm</span><span class="p">:</span>
+                <span class="n">conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bn_layer</span><span class="p">(</span><span class="n">conv_layer_i</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_conv_layer</span><span class="p">(</span><span class="n">conv_layer_i</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">conv_layer</span><span class="o">.</span><span class="n">output</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.append_activation">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.append_activation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append_activation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""add additional activation to convert float16 output to float32, required for mixed precision"""</span>
+        <span class="n">model_0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+        <span class="n">new_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s2">"linear"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)(</span>
+            <span class="n">model_0</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">model_0</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">new_outputs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_ensemble">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_ensemble">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_ensemble</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ensemble_rc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ensemble_shifts</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">"""Build ensemble of models computing on augmented input sequences."""</span>
+        <span class="n">shift_bool</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ensemble_shifts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">ensemble_shifts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">ensemble_rc</span> <span class="ow">or</span> <span class="n">shift_bool</span><span class="p">:</span>
+            <span class="c1"># sequence input</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+            <span class="n">sequences</span> <span class="o">=</span> <span class="p">[</span><span class="n">sequence</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">shift_bool</span><span class="p">:</span>
+                <span class="c1"># generate shifted sequences</span>
+                <span class="n">sequences</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">EnsembleShift</span><span class="p">(</span><span class="n">ensemble_shifts</span><span class="p">)(</span><span class="n">sequences</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ensemble_rc</span><span class="p">:</span>
+                <span class="c1"># generate reverse complements and indicators</span>
+                <span class="n">sequences_rev</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">EnsembleReverseComplement</span><span class="p">()(</span><span class="n">sequences</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sequences_rev</span> <span class="o">=</span> <span class="p">[(</span><span class="n">seq</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span> <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">strand_pair</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">strand_pair</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># predict each sequence</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preds_triu</span><span class="p">:</span>
+                <span class="n">preds</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverseTriu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_offset</span><span class="p">)(</span>
+                        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="n">rp</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">rp</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sequences_rev</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">preds</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)([</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="n">rp</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">rp</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sequences_rev</span>
+                <span class="p">]</span>
+
+            <span class="c1"># create layer</span>
+            <span class="n">preds_avg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Average</span><span class="p">()(</span><span class="n">preds</span><span class="p">)</span>
+
+            <span class="c1"># create meta model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">preds_avg</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_sad">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_sad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_sad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Sum across length axis, in graph."""</span>
+        <span class="c1"># sequence input</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+
+        <span class="c1"># predict</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+        <span class="n">preds_len</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># sum pool</span>
+        <span class="n">sad</span> <span class="o">=</span> <span class="n">preds_len</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GlobalAveragePooling1D</span><span class="p">()(</span><span class="n">predictions</span><span class="p">)</span>
+
+        <span class="c1"># replace model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">sad</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.build_slice">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.build_slice">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_sum</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Slice and/or sum across tasks, in graph."""</span>
+        <span class="k">if</span> <span class="n">target_slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_sum</span><span class="p">:</span>
+            <span class="c1"># sequence input</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+
+            <span class="c1"># predict</span>
+            <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+
+            <span class="c1"># slice</span>
+            <span class="k">if</span> <span class="n">target_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">predictions_slice</span> <span class="o">=</span> <span class="n">predictions</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">predictions_slice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">target_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># sum</span>
+            <span class="k">if</span> <span class="n">target_sum</span><span class="p">:</span>
+                <span class="n">predictions_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                    <span class="n">predictions_slice</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">predictions_sum</span> <span class="o">=</span> <span class="n">predictions_slice</span>
+
+            <span class="c1"># replace model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">predictions_sum</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.downcast">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.downcast">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">downcast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Downcast model output type."""</span>
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="c1"># sequence input</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+
+        <span class="c1"># predict and downcast</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+        <span class="n">model_down</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">preds</span><span class="p">)</span>
+
+        <span class="c1"># replace model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">model_down</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_down</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model_down</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.evaluate">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.evaluate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">seq_data</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"poisson"</span><span class="p">,</span> <span class="n">loss_fn</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Evaluate model on SeqDataset."""</span>
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="c1"># compile with dense metrics</span>
+        <span class="n">num_targets</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">loss_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">loss_fn</span> <span class="o">=</span> <span class="n">loss_label</span>
+
+        <span class="k">if</span> <span class="n">loss_label</span> <span class="o">==</span> <span class="s2">"bce"</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">(),</span>
+                <span class="n">loss</span><span class="o">=</span><span class="n">loss_fn</span><span class="p">,</span>
+                <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">SeqAUC</span><span class="p">(</span><span class="n">curve</span><span class="o">=</span><span class="s2">"ROC"</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">SeqAUC</span><span class="p">(</span><span class="n">curve</span><span class="o">=</span><span class="s2">"PR"</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                <span class="n">optimizer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">(),</span>
+                <span class="n">loss</span><span class="o">=</span><span class="n">loss_fn</span><span class="p">,</span>
+                <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">PearsonR</span><span class="p">(</span><span class="n">num_targets</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">R2</span><span class="p">(</span><span class="n">num_targets</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c1"># evaluate</span>
+        <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">seq_data</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.get_bn_layer">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.get_bn_layer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bn_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bn_layer_i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return specified batch normalization layer."""</span>
+        <span class="n">bn_layers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">layer</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span>
+            <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"batch_normalization"</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">bn_layers</span><span class="p">[</span><span class="n">bn_layer_i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.get_conv_layer">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.get_conv_layer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_conv_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conv_layer_i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return specified convolution layer."""</span>
+        <span class="n">conv_layers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">layer</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span> <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"conv"</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">conv_layers</span><span class="p">[</span><span class="n">conv_layer_i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.get_dense_layer">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.get_dense_layer">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_dense_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return specified dense layer."""</span>
+        <span class="n">dense_layers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">layer</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span> <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"dense"</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">dense_layers</span><span class="p">[</span><span class="n">layer_i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.get_conv_weights">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.get_conv_weights">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_conv_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conv_layer_i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return kernel weights for specified convolution layer."""</span>
+        <span class="n">conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_conv_layer</span><span class="p">(</span><span class="n">conv_layer_i</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">conv_layer</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">weights</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.gradients">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.gradients">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gradients</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">seq_1hot</span><span class="p">,</span>
+        <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_slice_denom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_mask_denom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">chunk_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">track_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">track_transform</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip_soft</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">untransform_old</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">no_untransform</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_logodds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">subtract_avg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">input_gate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute input gradients for sequences."""</span>
+
+        <span class="c1"># start time</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="c1"># verify tensor shape(s)</span>
+        <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+        <span class="n">target_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">target_slice</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+        <span class="n">pos_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_slice</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+
+        <span class="c1"># convert constants to tf tensors</span>
+        <span class="n">track_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">track_scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">track_transform</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">track_transform</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">clip_soft</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">clip_soft</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">pseudo_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">pseudo_count</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos_slice_denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_slice_denom</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_mask_denom</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_slice</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">target_slice</span> <span class="o">=</span> <span class="n">target_slice</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_slice</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_slice</span> <span class="o">=</span> <span class="n">pos_slice</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">pos_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_slice_denom</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_slice_denom</span> <span class="o">=</span> <span class="n">pos_slice_denom</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_mask_denom</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">pos_mask_denom</span> <span class="o">=</span> <span class="n">pos_mask_denom</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="c1"># chunk parameters</span>
+        <span class="n">num_chunks</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_chunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">chunk_size</span><span class="p">))</span>
+
+        <span class="c1"># loop over chunks</span>
+        <span class="n">grad_chunks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">):</span>
+            <span class="c1"># collect chunk</span>
+            <span class="n">seq_1hot_chunk</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="n">target_slice_chunk</span> <span class="o">=</span> <span class="n">target_slice</span><span class="p">[</span>
+                <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+            <span class="p">]</span>
+            <span class="n">pos_slice_chunk</span> <span class="o">=</span> <span class="n">pos_slice</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="n">pos_mask</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="n">pos_slice_denom</span><span class="p">[</span>
+                    <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="n">pos_mask_denom</span><span class="p">[</span>
+                        <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+            <span class="n">actual_chunk_size</span> <span class="o">=</span> <span class="n">seq_1hot_chunk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># convert to tf tensors</span>
+            <span class="n">seq_1hot_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">target_slice_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                <span class="n">target_slice_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="n">pos_slice_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">pos_slice_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">pos_mask_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                    <span class="n">pos_slice_denom_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                        <span class="n">pos_mask_denom_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># batching parameters</span>
+            <span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">actual_chunk_size</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+
+            <span class="c1"># loop over batches</span>
+            <span class="n">grad_batches</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">bi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+                <span class="c1"># collect batch</span>
+                <span class="n">seq_1hot_batch</span> <span class="o">=</span> <span class="n">seq_1hot_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+                <span class="n">target_slice_batch</span> <span class="o">=</span> <span class="n">target_slice_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+                <span class="n">pos_slice_batch</span> <span class="o">=</span> <span class="n">pos_slice_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+
+                <span class="n">pos_mask_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_batch</span> <span class="o">=</span> <span class="n">pos_mask_chunk</span><span class="p">[</span>
+                        <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+                <span class="n">pos_slice_denom_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">pos_mask_denom_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_slice_denom_batch</span> <span class="o">=</span> <span class="n">pos_slice_denom_chunk</span><span class="p">[</span>
+                        <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">pos_mask_denom_batch</span> <span class="o">=</span> <span class="n">pos_mask_denom_chunk</span><span class="p">[</span>
+                            <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                        <span class="p">]</span>
+
+                <span class="n">grad_batch</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gradients_func</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">seq_1hot_batch</span><span class="p">,</span>
+                        <span class="n">target_slice_batch</span><span class="p">,</span>
+                        <span class="n">pos_slice_batch</span><span class="p">,</span>
+                        <span class="n">pos_mask_batch</span><span class="p">,</span>
+                        <span class="n">pos_slice_denom_batch</span><span class="p">,</span>
+                        <span class="n">pos_mask_denom_batch</span><span class="p">,</span>
+                        <span class="n">track_scale</span><span class="p">,</span>
+                        <span class="n">track_transform</span><span class="p">,</span>
+                        <span class="n">clip_soft</span><span class="p">,</span>
+                        <span class="n">pseudo_count</span><span class="p">,</span>
+                        <span class="n">untransform_old</span><span class="p">,</span>
+                        <span class="n">no_untransform</span><span class="p">,</span>
+                        <span class="n">use_mean</span><span class="p">,</span>
+                        <span class="n">use_ratio</span><span class="p">,</span>
+                        <span class="n">use_logodds</span><span class="p">,</span>
+                        <span class="n">subtract_avg</span><span class="p">,</span>
+                        <span class="n">input_gate</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="n">grad_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grad_batch</span><span class="p">)</span>
+
+            <span class="c1"># concat gradient batches</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">grad_batches</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">grad_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grads</span><span class="p">)</span>
+
+            <span class="c1"># collect garbage</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="c1"># concat gradient chunks</span>
+        <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">grad_chunks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># aggregate and broadcast to original input pattern</span>
+        <span class="k">if</span> <span class="n">input_gate</span><span class="p">:</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">seq_1hot</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Completed gradient computation in </span><span class="si">%d</span><span class="s2">s"</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">grads</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.gradients_func">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.gradients_func">[docs]</a>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gradients_func</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">seq_1hot</span><span class="p">,</span>
+        <span class="n">target_slice</span><span class="p">,</span>
+        <span class="n">pos_slice</span><span class="p">,</span>
+        <span class="n">pos_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_slice_denom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_mask_denom</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">track_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">track_transform</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip_soft</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">untransform_old</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">no_untransform</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_logodds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">subtract_avg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">input_gate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute gradient of the model prediction with respect to the input sequence."""</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">GradientTape</span><span class="p">()</span> <span class="k">as</span> <span class="n">tape</span><span class="p">:</span>
+            <span class="n">tape</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">seq_1hot</span><span class="p">)</span>
+
+            <span class="c1"># predict</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">(</span><span class="n">seq_1hot</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">target_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">no_untransform</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">untransform_old</span><span class="p">:</span>
+                    <span class="c1"># undo scale</span>
+                    <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">/</span> <span class="n">track_scale</span>
+
+                    <span class="c1"># undo clip_soft</span>
+                    <span class="k">if</span> <span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                            <span class="n">preds</span> <span class="o">&gt;</span> <span class="n">clip_soft</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">preds</span> <span class="o">-</span> <span class="n">clip_soft</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">clip_soft</span><span class="p">,</span>
+                            <span class="n">preds</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                    <span class="c1"># undo sqrt</span>
+                    <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">track_transform</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># undo clip_soft</span>
+                    <span class="k">if</span> <span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                            <span class="n">preds</span> <span class="o">&gt;</span> <span class="n">clip_soft</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">preds</span> <span class="o">-</span> <span class="n">clip_soft</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">clip_soft</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">preds</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                    <span class="c1"># undo sqrt</span>
+                    <span class="n">preds</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">preds</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">track_transform</span><span class="p">)</span>
+
+                    <span class="c1"># scale</span>
+                    <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">/</span> <span class="n">track_scale</span>
+
+            <span class="c1"># aggregate over tracks (average)</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># slice specified positions</span>
+            <span class="n">preds_slice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">pos_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">preds_slice</span> <span class="o">=</span> <span class="n">preds_slice</span> <span class="o">*</span> <span class="n">pos_mask</span>
+
+            <span class="c1"># slice denominator positions</span>
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">preds_slice_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+                    <span class="n">preds</span><span class="p">,</span> <span class="n">pos_slice_denom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">preds_slice_denom</span> <span class="o">=</span> <span class="n">preds_slice_denom</span> <span class="o">*</span> <span class="n">pos_mask_denom</span>
+
+            <span class="c1"># aggregate over positions</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">use_mean</span><span class="p">:</span>
+                <span class="n">preds_agg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">preds_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">preds_agg_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">preds_slice_denom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">preds_agg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">preds_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                        <span class="n">pos_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">preds_agg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">preds_slice</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">preds_agg_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                            <span class="n">preds_slice_denom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+                        <span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">pos_mask_denom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">preds_agg_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">preds_slice_denom</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># compute final statistic to take gradient of</span>
+            <span class="k">if</span> <span class="n">no_untransform</span><span class="p">:</span>
+                <span class="n">score_ratios</span> <span class="o">=</span> <span class="n">preds_agg</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">use_ratio</span><span class="p">:</span>
+                <span class="n">score_ratios</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">preds_agg</span> <span class="o">+</span> <span class="n">pseudo_count</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">use_logodds</span><span class="p">:</span>
+                    <span class="n">score_ratios</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">preds_agg</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">preds_agg_denom</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="mf">1e-6</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">score_ratios</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="p">((</span><span class="n">preds_agg</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">preds_agg_denom</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">))</span>
+                        <span class="o">/</span> <span class="p">(</span>
+                            <span class="mf">1.0</span>
+                            <span class="o">-</span> <span class="p">(</span>
+                                <span class="p">(</span><span class="n">preds_agg</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">)</span>
+                                <span class="o">/</span> <span class="p">(</span><span class="n">preds_agg_denom</span> <span class="o">+</span> <span class="n">pseudo_count</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="o">+</span> <span class="mf">1e-6</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># compute gradient</span>
+        <span class="n">grads</span> <span class="o">=</span> <span class="n">tape</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">score_ratios</span><span class="p">,</span> <span class="n">seq_1hot</span><span class="p">)</span>
+
+        <span class="c1"># zero mean each position</span>
+        <span class="k">if</span> <span class="n">subtract_avg</span><span class="p">:</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">grads</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># multiply by input</span>
+        <span class="k">if</span> <span class="n">input_gate</span><span class="p">:</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">grads</span> <span class="o">*</span> <span class="n">seq_1hot</span>
+
+        <span class="k">return</span> <span class="n">grads</span></div>
+
+    
+<div class="viewcode-block" id="SeqNN.smooth_gradients">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.smooth_gradients">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">smooth_gradients</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">seq_1hot</span><span class="p">,</span>
+        <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_slice_denom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pos_mask_denom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">chunk_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">track_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">track_transform</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip_soft</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">untransform_old</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">no_untransform</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_logodds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">subtract_avg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">input_gate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">n_samples</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">sample_prob</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span>
+        <span class="n">sample_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sample_value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+        <span class="n">sample_seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute smoothed input gradients for sequences."""</span>
+
+        <span class="c1"># start time</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="c1"># verify tensor shape(s)</span>
+        <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+        <span class="n">target_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">target_slice</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+        <span class="n">pos_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_slice</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sample_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span>
+            <span class="n">sample_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sample_mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">'bool'</span><span class="p">)</span>
+        <span class="k">else</span> <span class="p">:</span>
+            <span class="n">sample_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">'bool'</span><span class="p">)</span>
+
+        <span class="c1"># convert constants to tf tensors</span>
+        <span class="n">track_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">track_scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">track_transform</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">track_transform</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">clip_soft</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">clip_soft</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">pseudo_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">pseudo_count</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos_slice_denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_slice_denom</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"int32"</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pos_mask_denom</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_slice</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">target_slice</span> <span class="o">=</span> <span class="n">target_slice</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_slice</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_slice</span> <span class="o">=</span> <span class="n">pos_slice</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">sample_mask</span> <span class="o">=</span> <span class="n">sample_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">pos_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_slice_denom</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">pos_slice_denom</span> <span class="o">=</span> <span class="n">pos_slice_denom</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_mask_denom</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">pos_mask_denom</span> <span class="o">=</span> <span class="n">pos_mask_denom</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+        <span class="c1"># chunk parameters</span>
+        <span class="n">num_chunks</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_chunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">seq_1hot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">chunk_size</span><span class="p">))</span>
+    
+        <span class="c1"># get random state with specific seed</span>
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">sample_seed</span><span class="p">)</span>
+
+        <span class="c1"># loop over chunks</span>
+        <span class="n">grad_chunks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">):</span>
+            <span class="c1"># collect chunk</span>
+            <span class="n">seq_1hot_chunk</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="n">target_slice_chunk</span> <span class="o">=</span> <span class="n">target_slice</span><span class="p">[</span>
+                <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+            <span class="p">]</span>
+            <span class="n">pos_slice_chunk</span> <span class="o">=</span> <span class="n">pos_slice</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="n">sample_mask_chunk</span> <span class="o">=</span> <span class="n">sample_mask</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="n">pos_mask</span><span class="p">[</span><span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="n">pos_slice_denom</span><span class="p">[</span>
+                    <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="n">pos_mask_denom</span><span class="p">[</span>
+                        <span class="n">ci</span> <span class="o">*</span> <span class="n">chunk_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+            <span class="n">actual_chunk_size</span> <span class="o">=</span> <span class="n">seq_1hot_chunk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            
+            <span class="c1"># sample noisy (discrete) perturbations of the input pattern chunk</span>
+            <span class="n">seq_1hot_chunk_corrupted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">sample_prob_actual</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">sample_prob</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">),</span> <span class="mi">6</span><span class="p">)</span>
+
+            <span class="c1"># corrupt positions according to sampling settings</span>
+            <span class="k">for</span> <span class="n">example_ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">:</span>
+                <span class="k">for</span> <span class="n">sample_ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span> <span class="p">:</span>
+
+                    <span class="n">corrupt_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">sample_prob_actual</span><span class="p">)</span>
+                    <span class="n">corrupt_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">corrupt_mask</span> <span class="o">&amp;</span> <span class="n">sample_mask_chunk</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="p">:])[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="n">nt_choice_prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">*</span> <span class="n">sample_mask_chunk</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">*</span> <span class="n">sample_mask_chunk</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
+
+                    <span class="n">rand_nt_index</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">corrupt_index</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">p</span><span class="o">=</span><span class="n">nt_choice_prob</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">sample_value</span> <span class="o">==</span> <span class="mf">1.</span> <span class="p">:</span>
+                        <span class="n">seq_1hot_chunk_corrupted</span><span class="p">[</span><span class="n">example_ix</span> <span class="o">*</span> <span class="n">n_samples</span> <span class="o">+</span> <span class="n">sample_ix</span><span class="p">,</span> <span class="n">corrupt_index</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="n">seq_1hot_chunk_corrupted</span><span class="p">[</span><span class="n">example_ix</span> <span class="o">*</span> <span class="n">n_samples</span> <span class="o">+</span> <span class="n">sample_ix</span><span class="p">,</span> <span class="n">corrupt_index</span><span class="p">,</span> <span class="n">rand_nt_index</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+                    <span class="k">else</span> <span class="p">:</span>
+                        <span class="n">seq_1hot_chunk_corrupted</span><span class="p">[</span><span class="n">example_ix</span> <span class="o">*</span> <span class="n">n_samples</span> <span class="o">+</span> <span class="n">sample_ix</span><span class="p">,</span> <span class="n">corrupt_index</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">sample_value</span><span class="p">)</span>
+                        <span class="n">seq_1hot_chunk_corrupted</span><span class="p">[</span><span class="n">example_ix</span> <span class="o">*</span> <span class="n">n_samples</span> <span class="o">+</span> <span class="n">sample_ix</span><span class="p">,</span> <span class="n">corrupt_index</span><span class="p">,</span> <span class="n">rand_nt_index</span><span class="p">]</span> <span class="o">+=</span> <span class="n">sample_value</span>
+
+            <span class="n">seq_1hot_chunk</span> <span class="o">=</span> <span class="n">seq_1hot_chunk_corrupted</span>
+            <span class="n">target_slice_chunk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">target_slice_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">pos_slice_chunk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pos_slice_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span>
+                <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pos_mask_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span>
+                <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pos_slice_denom_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span>
+                    <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">pos_mask_denom_chunk</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># convert to tf tensors</span>
+            <span class="n">seq_1hot_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">seq_1hot_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">target_slice_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                <span class="n">target_slice_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+            <span class="p">)</span>
+            <span class="n">pos_slice_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">pos_slice_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_mask_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">pos_mask_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pos_slice_denom_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                    <span class="n">pos_slice_denom_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_denom_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+                        <span class="n">pos_mask_denom_chunk</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># batching parameters</span>
+            <span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">actual_chunk_size</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+
+            <span class="c1"># loop over batches</span>
+            <span class="n">grad_batches</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">bi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+                <span class="c1"># collect batch</span>
+                <span class="n">seq_1hot_batch</span> <span class="o">=</span> <span class="n">seq_1hot_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+                <span class="n">target_slice_batch</span> <span class="o">=</span> <span class="n">target_slice_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+                <span class="n">pos_slice_batch</span> <span class="o">=</span> <span class="n">pos_slice_chunk</span><span class="p">[</span>
+                    <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                <span class="p">]</span>
+
+                <span class="n">pos_mask_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">pos_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_mask_batch</span> <span class="o">=</span> <span class="n">pos_mask_chunk</span><span class="p">[</span>
+                        <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+                <span class="n">pos_slice_denom_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">pos_mask_denom_batch</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">use_ratio</span> <span class="ow">and</span> <span class="n">pos_slice_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pos_slice_denom_batch</span> <span class="o">=</span> <span class="n">pos_slice_denom_chunk</span><span class="p">[</span>
+                        <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                    <span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">pos_mask_denom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">pos_mask_denom_batch</span> <span class="o">=</span> <span class="n">pos_mask_denom_chunk</span><span class="p">[</span>
+                            <span class="n">bi</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">bi</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">...</span>
+                        <span class="p">]</span>
+
+                <span class="n">grad_batch</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gradients_func</span><span class="p">(</span>
+                        <span class="n">model</span><span class="p">,</span>
+                        <span class="n">seq_1hot_batch</span><span class="p">,</span>
+                        <span class="n">target_slice_batch</span><span class="p">,</span>
+                        <span class="n">pos_slice_batch</span><span class="p">,</span>
+                        <span class="n">pos_mask_batch</span><span class="p">,</span>
+                        <span class="n">pos_slice_denom_batch</span><span class="p">,</span>
+                        <span class="n">pos_mask_denom_batch</span><span class="p">,</span>
+                        <span class="n">track_scale</span><span class="p">,</span>
+                        <span class="n">track_transform</span><span class="p">,</span>
+                        <span class="n">clip_soft</span><span class="p">,</span>
+                        <span class="n">pseudo_count</span><span class="p">,</span>
+                        <span class="n">untransform_old</span><span class="p">,</span>
+                        <span class="n">no_untransform</span><span class="p">,</span>
+                        <span class="n">use_mean</span><span class="p">,</span>
+                        <span class="n">use_ratio</span><span class="p">,</span>
+                        <span class="n">use_logodds</span><span class="p">,</span>
+                        <span class="n">subtract_avg</span><span class="p">,</span>
+                        <span class="n">input_gate</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="n">grad_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grad_batch</span><span class="p">)</span>
+
+            <span class="c1"># concat gradient batches</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">grad_batches</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    
+            <span class="c1"># aggregate noisy gradient perturbations</span>
+            <span class="n">grads_smoothed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">grads</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">grads</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">grads</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">example_ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">grads_smoothed</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">:</span>
+                <span class="k">for</span> <span class="n">sample_ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="n">grads_smoothed</span><span class="p">[</span><span class="n">example_ix</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">+=</span> <span class="n">grads</span><span class="p">[</span><span class="n">example_ix</span> <span class="o">*</span> <span class="n">n_samples</span> <span class="o">+</span> <span class="n">sample_ix</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">grads_smoothed</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">grads</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+            <span class="n">grad_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grads</span><span class="p">)</span>
+
+            <span class="c1"># collect garbage</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="c1"># concat gradient chunks</span>
+        <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">grad_chunks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># aggregate and broadcast to original input pattern</span>
+        <span class="k">if</span> <span class="n">input_gate</span><span class="p">:</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">*</span> <span class="n">seq_1hot</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Completed gradient computation in </span><span class="si">%d</span><span class="s2">s"</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">grads</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.num_targets">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.num_targets">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">num_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return number of targets."""</span>
+        <span class="k">if</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Predict targets for single batch."""</span>
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># if isinstance(x, np.ndarray):</span>
+        <span class="c1">#     preds = model(x).numpy().astype(dtype)</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     preds = model(x)</span>
+        <span class="k">return</span> <span class="n">preds</span>
+
+<div class="viewcode-block" id="SeqNN.predict">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">seq_data</span><span class="p">,</span>
+        <span class="n">head_i</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"float32"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Predict targets for SeqDataset, with more options.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          seq_data (SeqDataset): Dataset to predict on.</span>
+<span class="sd">          head_i (int): Model head index.</span>
+<span class="sd">          generator (bool): Use generator to predict on dataset.</span>
+<span class="sd">          stream (bool): Stream predictions from dataset.</span>
+<span class="sd">          step (int): Step size.</span>
+<span class="sd">          dtype (str): Data type to return.</span>
+<span class="sd">        """</span>
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="n">dataset</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">seq_data</span><span class="p">,</span> <span class="s2">"dataset"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">seq_data</span>
+
+        <span class="c1"># step slice</span>
+        <span class="n">preds_len</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">step_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">preds_len</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+
+        <span class="c1"># predict</span>
+        <span class="k">if</span> <span class="n">generator</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_generator</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+                <span class="n">yh</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">yh</span> <span class="o">=</span> <span class="n">yh</span><span class="p">[:,</span> <span class="n">step_i</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yh</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stream</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[:,</span> <span class="n">step_i</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="k">return</span> <span class="n">preds</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.predict_transform">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.predict_transform">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_transform</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">seq_1hot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
+        <span class="n">targets_df</span><span class="p">,</span>
+        <span class="n">strand_transform</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">untransform_old</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Predict a single sequence and transform.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seq_1hot (np.array): 1-hot encoded sequence.</span>
+<span class="sd">            targets_df (pd.DataFrame): Targets dataframe.</span>
+<span class="sd">            strand_transform (np.array): Strand merging transform.</span>
+<span class="sd">            untransform_old (bool): Apply old untransform.</span>
+<span class="sd">        """</span>
+        <span class="c1"># predict</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">seq_1hot</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># untransform predictions</span>
+        <span class="k">if</span> <span class="n">untransform_old</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds1</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+
+        <span class="c1"># sum strand pairs</span>
+        <span class="k">if</span> <span class="n">strand_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">*</span> <span class="n">strand_transform</span>
+
+        <span class="k">return</span> <span class="n">preds</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.restore">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.restore">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">trunk</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Restore weights from saved model."""</span>
+        <span class="k">if</span> <span class="n">trunk</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_trunk</span><span class="o">.</span><span class="n">load_weights</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span><span class="o">.</span><span class="n">load_weights</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.save">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">trunk</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Save model weights to file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          model_file (str): Path to save model weights.</span>
+<span class="sd">          trunk (bool): Save trunk weights only.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">trunk</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_trunk</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">include_optimizer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">include_optimizer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.step">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">head_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Create new model to step positions across sequence.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          step (int): Step size.</span>
+<span class="sd">          head_i (int): Model head index.</span>
+<span class="sd">        """</span>
+        <span class="c1"># choose model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+        <span class="c1"># sequence input</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"sequence"</span><span class="p">)</span>
+
+        <span class="c1"># predict and step across positions</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+        <span class="n">step_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">preds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span>
+        <span class="n">preds_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">step_positions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">model_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">sequence</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">preds_step</span><span class="p">)</span>
+
+        <span class="c1"># replace model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">model_step</span>
+        <span class="k">elif</span> <span class="n">head_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="n">head_i</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_step</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model_step</span></div>
+
+
+<div class="viewcode-block" id="SeqNN.track_sequence">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.track_sequence">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">track_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Track pooling, striding, and cropping of sequence.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          sequence (tf.Tensor): Sequence input.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_crops</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="c1"># determine model stride</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="s2">"strides"</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">):</span>
+                    <span class="n">stride_factor</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">layer</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="n">stride_factor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># determine predictions length before cropping</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Dimension</span><span class="p">):</span>
+                <span class="n">target_full_length</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">target_full_length</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># determine predictions length after cropping</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Dimension</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_crops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">target_full_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"model_strides"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_strides</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"target_lengths"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"target_crops"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_crops</span><span class="p">)</span></div>
+
+
+    <span class="c1"># method for inserting adapter for transfer learning</span>
+<div class="viewcode-block" id="SeqNN.insert_adapter">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.seqnn.SeqNN.insert_adapter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">insert_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapter</span> <span class="o">==</span> <span class="s2">"houlsby"</span><span class="p">:</span>
+            <span class="n">output_model</span> <span class="o">=</span> <span class="n">transfer</span><span class="o">.</span><span class="n">add_houlsby</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">latent_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adapter_latent</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapter</span> <span class="o">==</span> <span class="s2">"houlsby_se"</span><span class="p">:</span>
+            <span class="n">output_model</span> <span class="o">=</span> <span class="n">transfer</span><span class="o">.</span><span class="n">add_houlsby_se</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">houlsby_latent</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">adapter_latent</span><span class="p">,</span>
+                <span class="n">conv_select</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_select</span><span class="p">,</span>
+                <span class="n">se_rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">se_rank</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_model</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

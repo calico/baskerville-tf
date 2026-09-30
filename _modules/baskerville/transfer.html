@@ -1,0 +1,832 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.transfer &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.transfer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.transfer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapters</span>
+
+
+<div class="viewcode-block" id="param_count">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.param_count">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">param_count</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"all"</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"all"</span><span class="p">,</span> <span class="s2">"trainable"</span><span class="p">,</span> <span class="s2">"non_trainable"</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"TYPE must be one of all, trainable, non_trainable"</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">"all"</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">count_params</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">weights</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s2">"trainable"</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">count_params</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">trainable_weights</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">count_params</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">non_trainable_weights</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+
+<div class="viewcode-block" id="param_summary">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.param_summary">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">param_summary</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="n">trainable</span> <span class="o">=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"trainable"</span><span class="p">)</span>
+    <span class="n">non_trainable</span> <span class="o">=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"non_trainable"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"total params:</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">trainable</span> <span class="o">+</span> <span class="n">non_trainable</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"trainable params:</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">trainable</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"non-trainable params:</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">non_trainable</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="keras2dict">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.keras2dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">keras2dict</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="n">layer_parent_dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the parent layers of each layer in the old graph</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">_outbound_nodes</span><span class="p">:</span>
+            <span class="n">layer_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">outbound_layer</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">layer_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layer_parent_dict</span><span class="p">:</span>
+                <span class="n">layer_parent_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">layer_name</span><span class="p">:</span> <span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]})</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layer_parent_dict</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]:</span>
+                    <span class="n">layer_parent_dict</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">layer_parent_dict</span></div>
+
+
+
+<span class="c1"># lora requires change model.h5 weight order.</span>
+<span class="c1"># locon and ia3 don't modify model in place.</span>
+<div class="viewcode-block" id="var_reorder">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.var_reorder">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">var_reorder</span><span class="p">(</span><span class="n">weight_h5</span><span class="p">):</span>
+    <span class="c1"># assumes weight_h5 model saved with seqnn_model.save()</span>
+    <span class="c1"># [i.name for i in model.layers[30].weights] to check for multihead_attention layer weights order.</span>
+    <span class="c1"># model.load_weights() load weights sequencially, assuming h5 weights are in the right order.</span>
+    <span class="c1"># When inserting lora, multihead_attention layer weights order changed.</span>
+    <span class="c1"># multihead_attention layer weights order is saved inside f['model_weights']['multihead_attention'].attrs</span>
+    <span class="c1"># After saving the weight_merged model, we need to go into the weights.h5, and change the attrs in multihead attention.</span>
+    <span class="n">var_init_order</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">"r_w_bias:0:0"</span><span class="p">,</span>
+        <span class="s2">"r_r_bias:0:0"</span><span class="p">,</span>
+        <span class="s2">"q_layer/kernel:0"</span><span class="p">,</span>
+        <span class="s2">"k_layer/kernel:0"</span><span class="p">,</span>
+        <span class="s2">"v_layer/kernel:0"</span><span class="p">,</span>
+        <span class="s2">"embedding_layer/kernel:0"</span><span class="p">,</span>
+        <span class="s2">"embedding_layer/bias:0"</span><span class="p">,</span>
+        <span class="s2">"r_k_layer/kernel:0"</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">weight_h5</span><span class="p">,</span> <span class="s2">"r+"</span><span class="p">)</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s2">"model_weights"</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="s2">"multihead_attention"</span> <span class="ow">in</span> <span class="n">i</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">l_name</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">:</span>
+        <span class="n">new_name_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">l_name</span> <span class="o">+</span> <span class="s2">"/"</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">var_init_order</span><span class="p">]</span>
+        <span class="n">f</span><span class="p">[</span><span class="s2">"model_weights"</span><span class="p">][</span><span class="n">l_name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">modify</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"weight_names"</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">new_name_order</span>
+        <span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<span class="c1"># houlsby requires architecture change.</span>
+<span class="c1"># thus we need to modify json.</span>
+<div class="viewcode-block" id="modify_json">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.modify_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">modify_json</span><span class="p">(</span>
+    <span class="n">input_json</span><span class="p">,</span> <span class="n">output_json</span><span class="p">,</span> <span class="n">adapter</span><span class="p">,</span> <span class="n">latent</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">se_rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">conv_select</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_json</span><span class="p">)</span> <span class="k">as</span> <span class="n">params_open</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">params_open</span><span class="p">)</span>
+
+    <span class="c1"># houlsby</span>
+    <span class="k">if</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">"adapterHoulsby"</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"adapter"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"houlsby"</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"adapter_latent"</span><span class="p">]</span> <span class="o">=</span> <span class="n">latent</span>
+
+    <span class="c1"># houlsby_se</span>
+    <span class="k">elif</span> <span class="n">adapter</span> <span class="o">==</span> <span class="s2">"houlsby_se"</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"adapter"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"houlsby_se"</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"adapter_latent"</span><span class="p">]</span> <span class="o">=</span> <span class="n">latent</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"se_rank"</span><span class="p">]</span> <span class="o">=</span> <span class="n">se_rank</span>
+        <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">][</span><span class="s2">"conv_select"</span><span class="p">]</span> <span class="o">=</span> <span class="n">conv_select</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"adapter must be adapterHoulsby or houlsby_se"</span><span class="p">)</span>
+
+    <span class="c1">### output</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_json</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">params_open</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">params_open</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+
+<span class="c1">######################</span>
+<span class="c1"># add houlsby layers #</span>
+<span class="c1">######################</span>
+<div class="viewcode-block" id="add_houlsby">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_houlsby">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_houlsby</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">strand_pair</span><span class="p">,</span> <span class="n">latent_size</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+    <span class="c1"># take seqnn_model as input</span>
+    <span class="c1"># output a new seqnn_model object</span>
+    <span class="c1"># only the adapter, and layer_norm are trainable</span>
+
+    <span class="c1">##################</span>
+    <span class="c1"># houlsby layers #</span>
+    <span class="c1">##################</span>
+    <span class="n">houlsby_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">next_layer</span> <span class="o">=</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"dropout"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"add"</span><span class="p">,</span> <span class="n">next_layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">houlsby_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">next_layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1">###################</span>
+    <span class="c1"># construct model #</span>
+    <span class="c1">###################</span>
+    <span class="n">layer_parent_dict_old</span> <span class="o">=</span> <span class="n">keras2dict</span><span class="p">(</span><span class="n">input_model</span><span class="p">)</span>
+    <span class="c1"># remove switch_reverse_layer</span>
+    <span class="n">to_fix</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">layer_parent_dict_old</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"switch_reverse"</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">to_fix</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="c1"># create new graph</span>
+    <span class="n">layer_output_dict_new</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the output tensor of each layer in the new graph</span>
+    <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">})</span>
+    <span class="c1"># Iterate over all layers after the input</span>
+    <span class="n">reverse_bool</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># parent layers</span>
+        <span class="n">parent_layers</span> <span class="o">=</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="c1"># layer inputs</span>
+        <span class="n">layer_input</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parent_layers</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer_input</span> <span class="o">=</span> <span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"stochastic_reverse_complement"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">reverse_bool</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># insert houlsby layer:</span>
+        <span class="k">elif</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">houlsby_layers</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"adapter added before:</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">AdapterHoulsby</span><span class="p">(</span><span class="n">latent_size</span><span class="o">=</span><span class="n">latent_size</span><span class="p">)(</span><span class="n">layer_input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">([</span><span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># save the output tensor of every layer</span>
+        <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)(</span>
+        <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">reverse_bool</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">model_adapter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_model</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">final</span><span class="p">)</span>
+
+    <span class="c1"># set trainable #</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>  <span class="c1"># trunk</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"layer_normalization|adapter_houlsby"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"adapter_houlsby"</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"layer_normalization"</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"trainable"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by adapter_houlsby: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model_adapter</span></div>
+
+
+
+<span class="c1">###############</span>
+<span class="c1"># lora layers #</span>
+<span class="c1">###############</span>
+<div class="viewcode-block" id="add_lora">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_lora">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_lora</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span> <span class="n">report_param</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="c1"># take seqnn.model as input</span>
+    <span class="c1"># replace _q_layer, _v_layer in multihead_attention</span>
+    <span class="c1"># optionally replace _k_layer, _embedding_layer</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"full"</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"mode must be default or full"</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="c1"># default loRA</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="c1"># full loRA</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full"</span><span class="p">:</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">(</span>
+                    <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">(</span>
+                    <span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+
+    <span class="n">input_model</span><span class="p">(</span><span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>  <span class="c1"># initialize new variables</span>
+
+    <span class="c1"># freeze all params but lora</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">_flatten_layers</span><span class="p">():</span>
+        <span class="n">lst_of_sublayers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_flatten_layers</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_of_sublayers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"lora_a"</span><span class="p">,</span> <span class="s2">"lora_b"</span><span class="p">]:</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1">### bias terms need to be frozen separately</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+
+    <span class="c1"># set final head to be trainable</span>
+    <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"full"</span><span class="p">:</span>
+                <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+                <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+                <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+                <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">report_param</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by lora: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###############</span>
+<span class="c1"># lora layers #</span>
+<span class="c1">###############</span>
+<div class="viewcode-block" id="add_lora_conv">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_lora_conv">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_lora_conv</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">conv_select</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># add lora layers</span>
+    <span class="n">add_lora</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span> <span class="n">report_param</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># list all conv layers</span>
+    <span class="n">conv_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"conv1d"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">conv_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv_select</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"conv_select must be less than number of conv layers </span><span class="si">%d</span><span class="s2">."</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># set conv layers trainable</span>
+    <span class="n">trainable_conv</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="p">[</span><span class="o">-</span><span class="n">conv_select</span><span class="p">:]</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">trainable_conv</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">trainable_conv</span><span class="p">:</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by lora_conv: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># merge lora weights #</span>
+<div class="viewcode-block" id="merge_lora_layer">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.merge_lora_layer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_lora_layer</span><span class="p">(</span><span class="n">lora_layer</span><span class="p">):</span>
+    <span class="n">down_weights</span> <span class="o">=</span> <span class="n">lora_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">up_weights</span> <span class="o">=</span> <span class="n">lora_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">increment_weights</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ab,bc-&gt;ac"</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_layer</span><span class="o">.</span><span class="n">scale</span>
+    <span class="p">)</span>
+    <span class="n">lora_layer</span><span class="o">.</span><span class="n">original_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lora_layer</span><span class="o">.</span><span class="n">original_layer</span></div>
+
+
+
+<div class="viewcode-block" id="merge_lora">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.merge_lora">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_lora</span><span class="p">(</span><span class="n">input_model</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"multihead_attention"</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span> <span class="o">=</span> <span class="n">merge_lora_layer</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span> <span class="o">=</span> <span class="n">merge_lora_layer</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span> <span class="o">=</span> <span class="n">merge_lora_layer</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span> <span class="o">=</span> <span class="n">merge_lora_layer</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="p">)</span>
+    <span class="n">input_model</span><span class="p">(</span><span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">)</span></div>
+
+
+
+<span class="c1">##############</span>
+<span class="c1"># IA3 layers #</span>
+<span class="c1">##############</span>
+<div class="viewcode-block" id="add_ia3">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_ia3">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_ia3</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">strand_pair</span><span class="p">):</span>
+    <span class="c1"># add to kv layers #</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">IA3</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">IA3</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># add to ff layer #</span>
+    <span class="c1"># save old graph to dictionary</span>
+    <span class="n">layer_parent_dict_old</span> <span class="o">=</span> <span class="n">keras2dict</span><span class="p">(</span><span class="n">input_model</span><span class="p">)</span>
+
+    <span class="c1"># remove switch_reverse_layer</span>
+    <span class="n">to_fix</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">layer_parent_dict_old</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"switch_reverse"</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">to_fix</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># create new graph</span>
+    <span class="n">layer_output_dict_new</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the output tensor of each layer in the new graph</span>
+    <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">})</span>
+
+    <span class="c1"># Iterate over all layers after the input</span>
+    <span class="n">reverse_bool</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># get layer inputs</span>
+        <span class="n">parent_layers</span> <span class="o">=</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">layer_input</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parent_layers</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer_input</span> <span class="o">=</span> <span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># construct</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"stochastic_reverse_complement"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">reverse_bool</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+        <span class="c1"># transformer ff down-project layer (1536 -&gt; 768):</span>
+        <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"dense"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1536</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">IA3_ff</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">layer_input</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># save layers to dictionary</span>
+        <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)(</span>
+        <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">reverse_bool</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">model_adapter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_model</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">final</span><span class="p">)</span>
+
+    <span class="c1"># set trainable #</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">_flatten_layers</span><span class="p">():</span>
+        <span class="n">lst_of_sublayers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_flatten_layers</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_of_sublayers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"ia3"</span><span class="p">,</span> <span class="s2">"ia3_ff"</span><span class="p">]:</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1">### bias terms need to be frozen separately</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">_r_w_bias</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">layer</span><span class="o">.</span><span class="n">_r_r_bias</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">)</span>
+
+    <span class="c1"># set final head to be trainable</span>
+    <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>  <span class="c1"># kv layers</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"dense"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">l</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1536</span><span class="p">:</span>  <span class="c1"># ff layers</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by ia3: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model_adapter</span></div>
+
+
+
+<div class="viewcode-block" id="merge_ia3">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.merge_ia3">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_ia3</span><span class="p">(</span><span class="n">original_model</span><span class="p">,</span> <span class="n">ia3_model</span><span class="p">):</span>
+    <span class="c1"># original model contains pre-trained weights</span>
+    <span class="c1"># ia3 model is the fine-tuned ia3 model</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">original_model</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+        <span class="c1"># attention layers</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="c1"># scale k</span>
+            <span class="n">k_scaler</span> <span class="o">=</span> <span class="n">ia3_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="o">.</span><span class="n">kernel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">kernel</span> <span class="o">*</span> <span class="n">k_scaler</span><span class="p">)</span>
+            <span class="c1"># scale v</span>
+            <span class="n">v_scaler</span> <span class="o">=</span> <span class="n">ia3_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="o">.</span><span class="n">kernel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">kernel</span> <span class="o">*</span> <span class="n">v_scaler</span><span class="p">)</span>
+        <span class="c1"># ff layers</span>
+        <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"dense"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1536</span><span class="p">:</span>
+            <span class="n">ff_scaler</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ia3_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="o">.</span><span class="n">kernel</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">kernel</span> <span class="o">*</span> <span class="n">ff_scaler</span><span class="p">)</span>
+        <span class="c1"># other layers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">ia3_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_weights</span><span class="p">())</span></div>
+
+
+
+<span class="c1">#############</span>
+<span class="c1"># add locon #</span>
+<span class="c1">#############</span>
+<div class="viewcode-block" id="add_locon">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_locon">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_locon</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">strand_pair</span><span class="p">,</span> <span class="n">conv_select</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1"># first add lora to attention</span>
+    <span class="n">add_lora</span><span class="p">(</span><span class="n">input_model</span><span class="p">,</span> <span class="n">report_param</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># decide:</span>
+    <span class="c1"># 1. whether conv1 is trainable</span>
+    <span class="c1"># 2. which conv layers to add loRA</span>
+
+    <span class="c1"># all conv layers</span>
+    <span class="n">conv_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"conv1d"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">conv_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv_select</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"conv_select must be less than number of conv layers </span><span class="si">%d</span><span class="s2">."</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">locon_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">conv1_tune</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">):</span>
+        <span class="n">locon_layers</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">conv1_tune</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">locon_layers</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="p">[</span><span class="o">-</span><span class="n">conv_select</span><span class="p">:]</span>
+
+    <span class="n">layer_parent_dict_old</span> <span class="o">=</span> <span class="n">keras2dict</span><span class="p">(</span><span class="n">input_model</span><span class="p">)</span>
+
+    <span class="c1"># remove switch_reverse_layer</span>
+    <span class="n">to_fix</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">layer_parent_dict_old</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"switch_reverse"</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">to_fix</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># create new graph</span>
+    <span class="n">layer_output_dict_new</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the output tensor of each layer in the new graph</span>
+    <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">})</span>
+
+    <span class="c1"># Iterate over all layers after the input</span>
+    <span class="n">reverse_bool</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># get layer inputs</span>
+        <span class="n">parent_layers</span> <span class="o">=</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">layer_input</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parent_layers</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer_input</span> <span class="o">=</span> <span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># construct</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"stochastic_reverse_complement"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">reverse_bool</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">locon_layers</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Locon</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)(</span>
+                <span class="n">layer_input</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># save layers to dictionary</span>
+        <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)(</span>
+        <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">reverse_bool</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">model_adapter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_model</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">final</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">conv1_tune</span><span class="p">:</span>
+        <span class="n">model_adapter</span><span class="o">.</span><span class="n">get_layer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">conv_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">conv1_tune</span><span class="p">:</span>
+        <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">model_adapter</span><span class="o">.</span><span class="n">get_layer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">conv_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_adapter</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">locon_layers</span><span class="p">:</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">down_layer</span><span class="p">)</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">up_layer</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by lora: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model_adapter</span></div>
+
+
+
+<span class="c1">#### functions to merge locon</span>
+<div class="viewcode-block" id="lora_increment">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.lora_increment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">lora_increment</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+    <span class="n">down_weights</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">down_layer</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">up_weights</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">up_layer</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ab,bc-&gt;ac"</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span> <span class="o">*</span> <span class="n">layer</span><span class="o">.</span><span class="n">scale</span>
+    <span class="k">return</span> <span class="n">increment_weights</span></div>
+
+
+
+<div class="viewcode-block" id="locon_increment">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.locon_increment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">locon_increment</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+    <span class="n">down_weights</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">down_layer</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="n">up_weights</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">up_layer</span><span class="o">.</span><span class="n">kernel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"abc,cd-&gt;abd"</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span> <span class="o">*</span> <span class="n">layer</span><span class="o">.</span><span class="n">scale</span>
+    <span class="k">return</span> <span class="n">increment_weights</span></div>
+
+
+
+<div class="viewcode-block" id="merge_locon">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.merge_locon">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_locon</span><span class="p">(</span><span class="n">original_model</span><span class="p">,</span> <span class="n">locon_model</span><span class="p">):</span>
+    <span class="c1"># original model contains pre-trained weights</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">original_model</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+        <span class="c1"># lora layers</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"multihead_attention"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_q_layer</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_k_layer</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_v_layer</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_embedding_layer</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">lora_increment</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_q_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">lora_increment</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_v_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">lora_increment</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_k_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Lora</span><span class="p">):</span>
+                <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">lora_increment</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="n">layer</span><span class="o">.</span><span class="n">_embedding_layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+
+        <span class="c1"># locon layers</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">adapters</span><span class="o">.</span><span class="n">Locon</span><span class="p">):</span>
+            <span class="n">increment_weights</span> <span class="o">=</span> <span class="n">locon_increment</span><span class="p">(</span><span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">increment_weights</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">locon_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_weights</span><span class="p">())</span></div>
+
+
+
+<span class="c1">##############</span>
+<span class="c1"># houlsby_se #</span>
+<span class="c1">##############</span>
+<div class="viewcode-block" id="add_houlsby_se">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.transfer.add_houlsby_se">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_houlsby_se</span><span class="p">(</span>
+    <span class="n">input_model</span><span class="p">,</span> <span class="n">strand_pair</span><span class="p">,</span> <span class="n">houlsby_latent</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">conv_select</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">se_rank</span><span class="o">=</span><span class="mi">16</span>
+<span class="p">):</span>
+    <span class="c1"># add squeeze-excitation blocks after conv</span>
+    <span class="c1"># input_model should be properly frozen</span>
+    <span class="c1"># pre_att: add se_block to pre-attention conv1d</span>
+    <span class="c1"># all: add se_block to pre-attention conv1d and post-attention separable_conv1d</span>
+
+    <span class="c1">##################</span>
+    <span class="c1"># houlsby layers #</span>
+    <span class="c1">##################</span>
+    <span class="n">houlsby_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">next_layer</span> <span class="o">=</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"dropout"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"add"</span><span class="p">,</span> <span class="n">next_layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">houlsby_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">next_layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1">#############</span>
+    <span class="c1"># SE layers #</span>
+    <span class="c1">#############</span>
+    <span class="n">conv_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"conv1d"</span><span class="p">,</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">conv_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">se_layers</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="n">conv_select</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"conv_select must be less than number of conv layers </span><span class="si">%d</span><span class="s2">."</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">conv_layers</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="n">se_layers</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="p">[</span><span class="o">-</span><span class="n">conv_select</span><span class="p">:]</span>
+
+    <span class="c1">###################</span>
+    <span class="c1"># construct model #</span>
+    <span class="c1">###################</span>
+    <span class="n">layer_parent_dict_old</span> <span class="o">=</span> <span class="n">keras2dict</span><span class="p">(</span><span class="n">input_model</span><span class="p">)</span>
+    <span class="c1"># remove switch_reverse_layer</span>
+    <span class="n">to_fix</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">layer_parent_dict_old</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"switch_reverse"</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">to_fix</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="c1"># create new graph</span>
+    <span class="n">layer_output_dict_new</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># the output tensor of each layer in the new graph</span>
+    <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">input_model</span><span class="o">.</span><span class="n">input</span><span class="p">})</span>
+    <span class="c1"># Iterate over all layers after the input</span>
+    <span class="n">reverse_bool</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># parent layers</span>
+        <span class="n">parent_layers</span> <span class="o">=</span> <span class="n">layer_parent_dict_old</span><span class="p">[</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="c1"># layer inputs</span>
+        <span class="n">layer_input</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">parent_layers</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer_input</span> <span class="o">=</span> <span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"stochastic_reverse_complement"</span><span class="p">):</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">reverse_bool</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># insert houlsby layer:</span>
+        <span class="k">elif</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">houlsby_layers</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"adapter added before:</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">adapters</span><span class="o">.</span><span class="n">AdapterHoulsby</span><span class="p">(</span><span class="n">latent_size</span><span class="o">=</span><span class="n">houlsby_latent</span><span class="p">)(</span><span class="n">layer_input</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">([</span><span class="n">layer_input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">])</span>
+
+        <span class="c1"># insert squeeze-excite layer:</span>
+        <span class="k">elif</span> <span class="n">layer</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">se_layers</span><span class="p">:</span>
+            <span class="n">se_layer</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SqueezeExcite</span><span class="p">(</span>
+                <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># no activation before squeezing</span>
+                <span class="n">additive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># use sigmoid multiplicative scaling</span>
+                <span class="n">rank</span><span class="o">=</span><span class="n">se_rank</span><span class="p">,</span>  <span class="c1"># bottleneck ratio</span>
+                <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># ignore bias</span>
+                <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">TruncatedNormal</span><span class="p">(</span>
+                    <span class="n">stddev</span><span class="o">=</span><span class="mf">1e-3</span>
+                <span class="p">),</span>  <span class="c1"># near-zero weight initialization</span>
+                <span class="n">scale_fun</span><span class="o">=</span><span class="s2">"tanh"</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">se_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">layer_input</span><span class="p">)</span>
+
+        <span class="c1"># save the output tensor of every layer</span>
+        <span class="n">layer_output_dict_new</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">SwitchReverse</span><span class="p">(</span><span class="n">strand_pair</span><span class="p">)(</span>
+        <span class="p">[</span><span class="n">layer_output_dict_new</span><span class="p">[</span><span class="n">input_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="n">reverse_bool</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">model_final</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">input_model</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">final</span><span class="p">)</span>
+
+    <span class="c1"># set trainable</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_final</span><span class="o">.</span><span class="n">layers</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>  <span class="c1"># trunk</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"layer_normalization|adapter_houlsby"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_final</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>  <span class="c1"># set trunk</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"squeeze_excite"</span><span class="p">):</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># expected number of trainable params added/unfrozen:</span>
+    <span class="n">params_added</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">model_final</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">"squeeze_excite|adapter_houlsby"</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"layer_normalization"</span><span class="p">):</span>
+            <span class="n">params_added</span> <span class="o">+=</span> <span class="n">param_count</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">"trainable"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"params added/unfrozen by houlsby_se: </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">params_added</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model_final</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

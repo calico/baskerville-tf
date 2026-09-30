@@ -1,0 +1,567 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.dataset &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.dataset</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">natsort</span><span class="w"> </span><span class="kn">import</span> <span class="n">natsorted</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">dok_matrix</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+
+<span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s2">"GPU"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">gpu_devices</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">set_memory_growth</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># TFRecord constants</span>
+<span class="n">TFR_INPUT</span> <span class="o">=</span> <span class="s2">"sequence"</span>
+<span class="n">TFR_OUTPUT</span> <span class="o">=</span> <span class="s2">"target"</span>
+
+
+<div class="viewcode-block" id="file_to_records">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.file_to_records">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">file_to_records</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Read TFRecord file into tf.data.Dataset."""</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">compression_type</span><span class="o">=</span><span class="s2">"ZLIB"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="SeqDataset">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SeqDataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Labeled sequence dataset for Tensorflow.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      data_dir (str): Dataset directory.</span>
+<span class="sd">      split_label (str): Dataset split, e.g. train, valid, test.</span>
+<span class="sd">      batch_size (int): Batch size.</span>
+<span class="sd">      shuffle_buffer (int): Shuffle buffer size. Defaults to 128.</span>
+<span class="sd">      seq_length_crop (int): Sequence length to crop from sides. Defaults to 0.</span>
+<span class="sd">      mode (str): Dataset mode, e.g. train/eval. Defaults to 'eval'.</span>
+<span class="sd">      tfr_pattern (str): TFRecord pattern to glob. Defaults to split_label.</span>
+<span class="sd">      targets_slice_file (str): Targets table from which to slice a target subset.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">split_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">shuffle_buffer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="n">seq_length_crop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"eval"</span><span class="p">,</span>
+        <span class="n">tfr_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">targets_slice_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_label</span> <span class="o">=</span> <span class="n">split_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle_buffer</span> <span class="o">=</span> <span class="n">shuffle_buffer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_length_crop</span> <span class="o">=</span> <span class="n">seq_length_crop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tfr_pattern</span> <span class="o">=</span> <span class="n">tfr_pattern</span>
+
+        <span class="c1"># read data parameters</span>
+        <span class="n">data_stats_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/statistics.json"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_stats_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_stats_open</span><span class="p">:</span>
+            <span class="n">data_stats</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data_stats_open</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">]</span>
+
+        <span class="c1"># set defaults</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_depth</span> <span class="o">=</span> <span class="n">data_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"seq_depth"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">data_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"seq_1hot"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_length</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"target_length"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"num_targets"</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool_width</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"pool_width"</span><span class="p">]</span>
+
+        <span class="c1"># slice targets</span>
+        <span class="k">if</span> <span class="n">targets_slice_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">targets_slice</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">targets_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">targets_slice_file</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">targets_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="c1"># extract or compute sequence statistics</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tfr_pattern</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/tfrecords/</span><span class="si">%s</span><span class="s2">-*.tfr"</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_label</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span> <span class="o">=</span> <span class="n">data_stats</span><span class="p">[</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_seqs"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_label</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/tfrecords/</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tfr_pattern</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_stats</span><span class="p">()</span>
+
+        <span class="c1"># make tf.data.Dataset object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_dataset</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SeqDataset.batches_per_epoch">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.batches_per_epoch">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batches_per_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute number of batches per epoch."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span></div>
+
+
+<div class="viewcode-block" id="SeqDataset.distribute">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.distribute">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">distribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Wrap Dataset to distribute across devices."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">experimental_distribute_dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqDataset.generate_parser">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.generate_parser">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Generate parser function for TFRecordDataset."""</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">parse_proto</span><span class="p">(</span><span class="n">example_protos</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">"""Parse TFRecord protobuf."""</span>
+
+            <span class="c1"># define features</span>
+            <span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">TFR_INPUT</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+                <span class="n">TFR_OUTPUT</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="c1"># parse example into features</span>
+            <span class="n">parsed_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span>
+                <span class="n">example_protos</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span>
+            <span class="p">)</span>
+
+            <span class="c1"># decode sequence</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_raw</span><span class="p">(</span><span class="n">parsed_features</span><span class="p">[</span><span class="n">TFR_INPUT</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_1hot</span><span class="p">:</span>
+                    <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">])</span>
+                    <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_depth</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+                    <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># drop N</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_depth</span><span class="p">])</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length_crop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">crop_len</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length_crop</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                    <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[</span><span class="n">crop_len</span><span class="p">:</span><span class="o">-</span><span class="n">crop_len</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">sequence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+            <span class="c1"># decode targets</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_raw</span><span class="p">(</span><span class="n">parsed_features</span><span class="p">[</span><span class="n">TFR_OUTPUT</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+                <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target_length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span><span class="p">])</span>
+                <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets_slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">targets_slice</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">targets</span>
+
+        <span class="k">return</span> <span class="n">parse_proto</span></div>
+
+
+<div class="viewcode-block" id="SeqDataset.make_dataset">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.make_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cycle_length</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Make tf.data.Dataset w/ transformations."""</span>
+
+        <span class="c1"># initialize dataset from TFRecords glob</span>
+        <span class="n">tfr_files</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">tfr_files</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">tfr_files</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Cannot order TFRecords </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">)</span>
+
+        <span class="c1"># train</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"train"</span><span class="p">:</span>
+            <span class="c1"># repeat</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+
+            <span class="c1"># interleave files</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">interleave</span><span class="p">(</span>
+                <span class="n">map_func</span><span class="o">=</span><span class="n">file_to_records</span><span class="p">,</span>
+                <span class="n">cycle_length</span><span class="o">=</span><span class="n">cycle_length</span><span class="p">,</span>
+                <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># shuffle</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span>
+                <span class="n">buffer_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shuffle_buffer</span><span class="p">,</span> <span class="n">reshuffle_each_iteration</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+        <span class="c1"># valid/test</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># flat mix files</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="n">file_to_records</span><span class="p">)</span>
+
+        <span class="c1"># map parser across files</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_parser</span><span class="p">())</span>
+
+        <span class="c1"># batch</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="c1"># prefetch</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+
+        <span class="c1"># hold on</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span></div>
+
+
+<div class="viewcode-block" id="SeqDataset.compute_stats">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.compute_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Iterate over the TFRecords to count sequences, and infer</span>
+<span class="sd">        seq_depth and num_targets."""</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s2">"stats"</span><span class="p">):</span>
+            <span class="c1"># read TF Records</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="n">file_to_records</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_parser</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">targets_nonzero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"bool"</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">seq_raw</span><span class="p">,</span> <span class="n">targets_raw</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+            <span class="c1"># infer num_targets</span>
+            <span class="n">targets1</span> <span class="o">=</span> <span class="n">targets_raw</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span> <span class="o">=</span> <span class="n">targets1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">targets_nonzero</span> <span class="o">=</span> <span class="p">(</span><span class="n">targets1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span> <span class="o">==</span> <span class="n">targets1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">targets_nonzero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                    <span class="n">targets_nonzero</span><span class="p">,</span> <span class="p">(</span><span class="n">targets1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="p">)</span>
+
+            <span class="c1"># count sequences</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># warn user about nonzero targets</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_targets_nonzero</span> <span class="o">=</span> <span class="p">(</span><span class="n">targets_nonzero</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"</span><span class="si">%s</span><span class="s2"> has </span><span class="si">%d</span><span class="s2"> sequences with </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2"> targets"</span>
+                <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">num_targets_nonzero</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">num_targets</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_targets_nonzero</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"</span><span class="si">%s</span><span class="s2"> has </span><span class="si">%d</span><span class="s2"> sequences with 0 targets"</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_seqs</span><span class="p">),</span>
+                <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqDataset.numpy">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.SeqDataset.numpy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">numpy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">return_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_outputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">target_slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Convert TFR inputs and/or outputs to numpy arrays."""</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s2">"numpy"</span><span class="p">):</span>
+            <span class="c1"># initialize dataset from TFRecords glob</span>
+            <span class="n">tfr_files</span> <span class="o">=</span> <span class="n">natsorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">tfr_files</span><span class="p">:</span>
+                <span class="c1"># dataset = tf.data.Dataset.list_files(tf.constant(tfr_files), shuffle=False)</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">tfr_files</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"Cannot order TFRecords </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tfr_path</span><span class="p">)</span>
+
+            <span class="c1"># read TF Records</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="n">file_to_records</span><span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_parser</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># initialize inputs and outputs</span>
+        <span class="n">seqs_1hot</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># collect inputs and outputs</span>
+        <span class="k">for</span> <span class="n">seq_raw</span><span class="p">,</span> <span class="n">targets_raw</span> <span class="ow">in</span> <span class="n">dataset</span><span class="p">:</span>
+            <span class="c1"># sequence</span>
+            <span class="k">if</span> <span class="n">return_inputs</span><span class="p">:</span>
+                <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_raw</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length_crop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">crop_len</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">seq_length_crop</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                    <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">seq_1hot</span><span class="p">[</span><span class="n">crop_len</span><span class="p">:</span><span class="o">-</span><span class="n">crop_len</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">seqs_1hot</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_1hot</span><span class="p">)</span>
+
+            <span class="c1"># targets</span>
+            <span class="k">if</span> <span class="n">return_outputs</span><span class="p">:</span>
+                <span class="n">targets1</span> <span class="o">=</span> <span class="n">targets_raw</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">targets1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">targets1</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">target_slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">targets1</span> <span class="o">=</span> <span class="n">targets1</span><span class="p">[:,</span> <span class="n">target_slice</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">step_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_length</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+                    <span class="n">targets1</span> <span class="o">=</span> <span class="n">targets1</span><span class="p">[</span><span class="n">step_i</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">targets1</span><span class="p">)</span>
+
+        <span class="c1"># make arrays</span>
+        <span class="n">seqs_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seqs_1hot</span><span class="p">)</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># return</span>
+        <span class="k">if</span> <span class="n">return_inputs</span> <span class="ow">and</span> <span class="n">return_outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">seqs_1hot</span><span class="p">,</span> <span class="n">targets</span>
+        <span class="k">elif</span> <span class="n">return_inputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">seqs_1hot</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">targets</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="make_strand_transform">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.make_strand_transform">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_strand_transform</span><span class="p">(</span><span class="n">targets_df</span><span class="p">,</span> <span class="n">targets_strand_df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Make a sparse matrix to sum strand pairs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        targets_df (pd.DataFrame): Targets DataFrame.</span>
+<span class="sd">        targets_strand_df (pd.DataFrame): Targets DataFrame, with strand pairs collapsed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        scipy.sparse.dok_matrix: Sparse matrix to sum strand pairs.</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># initialize sparse matrix</span>
+    <span class="n">strand_transform</span> <span class="o">=</span> <span class="n">dok_matrix</span><span class="p">((</span><span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">targets_strand_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="c1"># track which strand pairs we've seen</span>
+    <span class="n">seen_pairs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># fill in matrix</span>
+    <span class="n">ti</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sti</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">strand_transform</span><span class="p">[</span><span class="n">ti</span><span class="p">,</span> <span class="n">sti</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">strand_pair</span> <span class="o">==</span> <span class="n">target</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="c1"># Unstranded target</span>
+            <span class="n">sti</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Stranded target - check if we've seen its pair</span>
+            <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">strand_pair</span> <span class="ow">in</span> <span class="n">seen_pairs</span><span class="p">:</span>
+                <span class="c1"># This is the second member of the pair, increment sti</span>
+                <span class="n">sti</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># This is the first member of the pair, mark it as seen</span>
+                <span class="n">seen_pairs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">ti</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">strand_transform</span></div>
+
+
+
+<div class="viewcode-block" id="targets_prep_strand">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.targets_prep_strand">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">targets_prep_strand</span><span class="p">(</span><span class="n">targets_df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Adjust targets table for merged stranded datasets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        targets_df: pandas DataFrame of targets</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        targets_df: pandas DataFrame of targets, with stranded</span>
+<span class="sd">            targets collapsed into a single row</span>
+<span class="sd">    """</span>
+    <span class="c1"># attach strand</span>
+    <span class="n">targets_strand</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">strand_pair</span> <span class="o">==</span> <span class="n">target</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">targets_strand</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">targets_strand</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">identifier</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">targets_df</span><span class="p">[</span><span class="s2">"strand"</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets_strand</span>
+
+    <span class="c1"># collapse stranded</span>
+    <span class="n">strand_mask</span> <span class="o">=</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">strand</span> <span class="o">!=</span> <span class="s2">"-"</span>
+    <span class="n">targets_strand_df</span> <span class="o">=</span> <span class="n">targets_df</span><span class="p">[</span><span class="n">strand_mask</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">targets_strand_df</span></div>
+
+
+
+<div class="viewcode-block" id="untransform_preds">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.untransform_preds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">untransform_preds</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">,</span> <span class="n">unscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unclip</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Undo the squashing transformations performed for the tasks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      preds (np.array): Predictions LxT.</span>
+<span class="sd">      targets_df (pd.DataFrame): Targets information table.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      preds (np.array): Untransformed predictions LxT.</span>
+<span class="sd">    """</span>
+    <span class="c1"># clip soft</span>
+    <span class="k">if</span> <span class="n">unclip</span><span class="p">:</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">clip_soft</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">preds_unclip</span> <span class="o">=</span> <span class="n">cs</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">preds</span> <span class="o">-</span> <span class="n">cs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">preds</span> <span class="o">&gt;</span> <span class="n">cs</span><span class="p">,</span> <span class="n">preds_unclip</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+
+    <span class="c1"># sqrt</span>
+    <span class="n">sqrt_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"_sqrt"</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">sum_stat</span><span class="p">])</span>
+    <span class="n">preds</span><span class="p">[:,</span> <span class="n">sqrt_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">preds</span><span class="p">[:,</span> <span class="n">sqrt_mask</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>  <span class="c1"># (4 / 3)</span>
+
+    <span class="c1"># scale</span>
+    <span class="k">if</span> <span class="n">unscale</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">scale</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">/</span> <span class="n">scale</span>
+
+    <span class="k">return</span> <span class="n">preds</span></div>
+
+
+
+<div class="viewcode-block" id="untransform_preds1">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.dataset.untransform_preds1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">untransform_preds1</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">,</span> <span class="n">unscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unclip</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Undo the squashing transformations performed for the tasks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      preds (np.array): Predictions LxT.</span>
+<span class="sd">      targets_df (pd.DataFrame): Targets information table.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      preds (np.array): Untransformed predictions LxT.</span>
+<span class="sd">    """</span>
+    <span class="c1"># scale</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">scale</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">/</span> <span class="n">scale</span>
+
+    <span class="c1"># clip soft</span>
+    <span class="k">if</span> <span class="n">unclip</span><span class="p">:</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">clip_soft</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">preds_unclip</span> <span class="o">=</span> <span class="n">cs</span> <span class="o">+</span> <span class="p">(</span><span class="n">preds</span> <span class="o">-</span> <span class="n">cs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">preds</span> <span class="o">&gt;</span> <span class="n">cs</span><span class="p">,</span> <span class="n">preds_unclip</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
+
+    <span class="c1"># ** 0.75</span>
+    <span class="n">sqrt_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ss</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"_sqrt"</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">sum_stat</span><span class="p">])</span>
+    <span class="n">preds</span><span class="p">[:,</span> <span class="n">sqrt_mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">preds</span><span class="p">[:,</span> <span class="n">sqrt_mask</span><span class="p">])</span> <span class="o">**</span> <span class="p">(</span><span class="mi">4</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="c1"># unscale</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">unscale</span><span class="p">:</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span> <span class="o">*</span> <span class="n">scale</span>
+
+    <span class="k">return</span> <span class="n">preds</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

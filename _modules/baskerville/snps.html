@@ -1,0 +1,1223 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.snps &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.snps</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.snps</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">concurrent</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pybedtools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">rel_entr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dna</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville.gene</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transcriptome</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">seqnn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">vcf</span> <span class="k">as</span> <span class="n">bvcf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville.helpers.trt_optimized_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptimizedModel</span>
+
+
+<div class="viewcode-block" id="score_snps">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.score_snps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">score_snps</span><span class="p">(</span><span class="n">params_file</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">vcf_file</span><span class="p">,</span> <span class="n">worker_index</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Score SNPs in a VCF file with a SeqNN model.</span>
+
+<span class="sd">    :param params_file: Model parameters</span>
+<span class="sd">    :param model_file: Saved model weights</span>
+<span class="sd">    :param vcf_file: VCF</span>
+<span class="sd">    :param worker_index</span>
+<span class="sd">    :param options: options from cmd args</span>
+<span class="sd">    :return:</span>
+<span class="sd">    """</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># read parameters and targets</span>
+
+    <span class="c1"># read model parameters</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">params_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">params_open</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">params_open</span><span class="p">)</span>
+    <span class="n">params_model</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span>
+
+    <span class="c1"># read targets</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Must provide targets file to clarify stranded datasets"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">targets_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">targets_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># handle strand pairs</span>
+    <span class="k">if</span> <span class="s2">"strand_pair"</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># prep strand</span>
+        <span class="n">targets_strand_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">targets_prep_strand</span><span class="p">(</span><span class="n">targets_df</span><span class="p">)</span>
+
+        <span class="c1"># set strand pairs (using new indexing)</span>
+        <span class="n">orig_new_index</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+        <span class="n">targets_strand_pair</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">orig_new_index</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">params_model</span><span class="p">[</span><span class="s2">"strand_pair"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">targets_strand_pair</span><span class="p">]</span>
+
+        <span class="c1"># construct strand sum transform</span>
+        <span class="n">strand_transform</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_strand_transform</span><span class="p">(</span><span class="n">targets_df</span><span class="p">,</span> <span class="n">targets_strand_df</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">targets_strand_df</span> <span class="o">=</span> <span class="n">targets_df</span>
+        <span class="n">strand_transform</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># setup model</span>
+
+    <span class="n">seqnn_model</span> <span class="o">=</span> <span class="n">seqnn</span><span class="o">.</span><span class="n">SeqNN</span><span class="p">(</span><span class="n">params_model</span><span class="p">)</span>
+
+    <span class="c1"># load model</span>
+    <span class="n">sum_length</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span> <span class="o">==</span> <span class="s2">"SAD"</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">tensorrt</span><span class="p">:</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">OptimizedModel</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">)</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">loaded_model_fn</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">build_slice</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sum_length</span><span class="p">:</span>
+            <span class="n">seqnn_model</span><span class="o">.</span><span class="n">build_sad</span><span class="p">()</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">build_ensemble</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">rc</span><span class="p">)</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">input_shape</span>
+
+    <span class="c1"># make dummy predictions to warm up model</span>
+    <span class="n">dummy_input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">dummy_input_shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">seqnn_model</span><span class="p">(</span><span class="n">dummy_input</span><span class="p">)</span>
+
+    <span class="c1"># shift outside seqnn</span>
+    <span class="n">num_shifts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">)</span>
+    <span class="n">targets_length</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">targets_length</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model_stride</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model_crop</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">target_crops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">model_stride</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># load SNPs</span>
+
+    <span class="c1"># clustering SNPs requires sorted VCF and no reference flips</span>
+    <span class="n">snps_clustered</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">cluster_snps_pct</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="c1"># filter for worker SNPs</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">start_i</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">end_i</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># determine boundaries</span>
+        <span class="n">num_snps</span> <span class="o">=</span> <span class="n">bvcf</span><span class="o">.</span><span class="n">vcf_count</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+        <span class="n">worker_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_snps</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"int"</span><span class="p">)</span>
+        <span class="n">start_i</span> <span class="o">=</span> <span class="n">worker_bounds</span><span class="p">[</span><span class="n">worker_index</span><span class="p">]</span>
+        <span class="n">end_i</span> <span class="o">=</span> <span class="n">worker_bounds</span><span class="p">[</span><span class="n">worker_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># read SNPs</span>
+    <span class="n">snps</span> <span class="o">=</span> <span class="n">bvcf</span><span class="o">.</span><span class="n">vcf_snps</span><span class="p">(</span>
+        <span class="n">vcf_file</span><span class="p">,</span>
+        <span class="n">require_sorted</span><span class="o">=</span><span class="n">snps_clustered</span><span class="p">,</span>
+        <span class="n">flip_ref</span><span class="o">=~</span><span class="n">snps_clustered</span><span class="p">,</span>
+        <span class="n">validate_ref_fasta</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">genome_fasta</span><span class="p">,</span>
+        <span class="n">start_i</span><span class="o">=</span><span class="n">start_i</span><span class="p">,</span>
+        <span class="n">end_i</span><span class="o">=</span><span class="n">end_i</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># cluster SNPs</span>
+    <span class="k">if</span> <span class="n">snps_clustered</span><span class="p">:</span>
+        <span class="n">snp_clusters</span> <span class="o">=</span> <span class="n">cluster_snps</span><span class="p">(</span>
+            <span class="n">snps</span><span class="p">,</span> <span class="n">params_model</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">],</span> <span class="n">options</span><span class="o">.</span><span class="n">cluster_snps_pct</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">snp_clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">:</span>
+            <span class="n">snp_clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SNPCluster</span><span class="p">())</span>
+            <span class="n">snp_clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_snp</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span>
+
+    <span class="c1"># delimit sequence boundaries</span>
+    <span class="p">[</span><span class="n">sc</span><span class="o">.</span><span class="n">delimit</span><span class="p">(</span><span class="n">params_model</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">])</span> <span class="k">for</span> <span class="n">sc</span> <span class="ow">in</span> <span class="n">snp_clusters</span><span class="p">]</span>
+
+    <span class="c1"># open genome FASTA</span>
+    <span class="n">genome_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">genome_fasta</span><span class="p">)</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># predict SNP scores, write output</span>
+
+    <span class="c1"># setup output</span>
+    <span class="n">scores_out</span> <span class="o">=</span> <span class="n">initialize_output_h5</span><span class="p">(</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">,</span>
+        <span class="n">snps</span><span class="p">,</span>
+        <span class="n">targets_length</span><span class="p">,</span>
+        <span class="n">targets_strand_df</span><span class="p">,</span>
+        <span class="n">num_shifts</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># CPU computation</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_write</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">si</span><span class="p">):</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">compute_scores</span><span class="p">(</span>
+            <span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">,</span> <span class="n">strand_transform</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">snp_stat</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">:</span>
+            <span class="n">scores_out</span><span class="p">[</span><span class="n">snp_stat</span><span class="p">][</span><span class="n">si</span><span class="p">]</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="n">snp_stat</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">untransform_old</span><span class="p">:</span>
+        <span class="n">untransform</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">untransform</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds</span>
+
+    <span class="c1"># SNP index</span>
+    <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="c1"># initialize 1 hot encoding</span>
+        <span class="n">sc0</span> <span class="o">=</span> <span class="n">snp_clusters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">s1l</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">sc0</span><span class="o">.</span><span class="n">get_1hots</span><span class="p">,</span> <span class="n">genome_open</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">sc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="n">snp_clusters</span><span class="p">)):</span>
+            <span class="c1"># pull latest 1 hot encoding</span>
+            <span class="n">snp_1hot_list</span> <span class="o">=</span> <span class="n">s1l</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="n">ref_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">snp_1hot_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># submit next 1 hot encoding</span>
+            <span class="k">if</span> <span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp_clusters</span><span class="p">):</span>
+                <span class="n">sc1</span> <span class="o">=</span> <span class="n">snp_clusters</span><span class="p">[</span><span class="n">ci</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">s1l</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">sc1</span><span class="o">.</span><span class="n">get_1hots</span><span class="p">,</span> <span class="n">genome_open</span><span class="p">)</span>
+
+            <span class="c1"># add left/right shifts for singleton cluster deletions</span>
+            <span class="n">ref_shifts</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span>
+            <span class="n">singleton_cluster</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">snps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">singleton_cluster</span><span class="p">:</span>
+                <span class="n">indel_size</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">indel_size</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">ref_shifts</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">:</span>
+                        <span class="n">ref_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+                        <span class="n">ref_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span> <span class="o">+</span> <span class="n">indel_size</span><span class="p">)</span>
+
+            <span class="c1"># predict reference</span>
+            <span class="n">ref_preds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">ref_shifts</span><span class="p">:</span>
+                <span class="n">ref_1hot_shift</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">hot1_augment</span><span class="p">(</span><span class="n">ref_1hot</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">)</span>
+                <span class="n">ref_preds_shift</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="p">(</span><span class="n">ref_1hot_shift</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># untransform predictions</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ref_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_preds_shift</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rpsf</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">untransform</span><span class="p">,</span> <span class="n">ref_preds_shift</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+                    <span class="n">ref_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rpsf</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">ai</span><span class="p">,</span> <span class="n">alt_1hot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">snp_1hot_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="n">alt_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># add left/right shifts for indels</span>
+                <span class="n">indel_size</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">indel_size</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">singleton_cluster</span><span class="p">:</span>
+                    <span class="c1"># compensation shift only insertions</span>
+                    <span class="n">compen_shift</span> <span class="o">=</span> <span class="n">indel_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># compensation shift all indels</span>
+                    <span class="n">compen_shift</span> <span class="o">=</span> <span class="n">indel_size</span> <span class="o">!=</span> <span class="mi">0</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">compen_shift</span><span class="p">:</span>
+                    <span class="n">alt_shifts</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">alt_shifts</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">:</span>
+                        <span class="n">alt_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+                        <span class="n">alt_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span> <span class="o">-</span> <span class="n">indel_size</span><span class="p">)</span>
+
+                <span class="c1"># predict alternate</span>
+                <span class="n">alt_preds</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">alt_shifts</span><span class="p">:</span>
+                    <span class="n">alt_1hot_shift</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">hot1_augment</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">)</span>
+                    <span class="n">alt_preds_shift</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="p">(</span><span class="n">alt_1hot_shift</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="c1"># untransform predictions</span>
+                    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">alt_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_preds_shift</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">apsf</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">untransform</span><span class="p">,</span> <span class="n">alt_preds_shift</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+                        <span class="n">alt_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">apsf</span><span class="p">)</span>
+
+                <span class="c1"># result</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># get result, only if not already gotten</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">Future</span><span class="p">):</span>
+                        <span class="n">ref_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">rpsf</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">rpsf</span> <span class="ow">in</span> <span class="n">ref_preds</span><span class="p">]</span>
+                    <span class="n">alt_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">apsf</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">apsf</span> <span class="ow">in</span> <span class="n">alt_preds</span><span class="p">]</span>
+
+                <span class="c1"># stitch indel shifts</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">indel_stitch</span><span class="p">:</span>
+                    <span class="n">snp_seq_pos</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="n">sc</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">model_crop</span>
+                    <span class="n">snp_seq_bin</span> <span class="o">=</span> <span class="n">snp_seq_pos</span> <span class="o">//</span> <span class="n">model_stride</span>
+
+                    <span class="k">if</span> <span class="n">singleton_cluster</span> <span class="ow">and</span> <span class="n">indel_size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># stitch reference</span>
+                        <span class="n">ref_preds</span> <span class="o">=</span> <span class="n">stitch_preds</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">,</span> <span class="n">snp_seq_bin</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># stitch alternate</span>
+                        <span class="n">alt_preds</span> <span class="o">=</span> <span class="n">stitch_preds</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">,</span> <span class="n">snp_seq_bin</span><span class="p">)</span>
+
+                <span class="c1"># freeze into arrays (before repeat, so reference isn't repeated multiple times)</span>
+                <span class="n">rp_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+                <span class="n">ap_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">)</span>
+
+                <span class="c1"># repeat un-compensated predictions for indels w/o stitching</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">indel_stitch</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">singleton_cluster</span> <span class="ow">and</span> <span class="n">indel_size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">ap_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">ap_snp</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rp_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">rp_snp</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># flip reference and alternate</span>
+                <span class="k">if</span> <span class="n">snps</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">flipped</span><span class="p">:</span>
+                    <span class="n">rp_snp</span><span class="p">,</span> <span class="n">ap_snp</span> <span class="o">=</span> <span class="n">ap_snp</span><span class="p">,</span> <span class="n">rp_snp</span>
+
+                <span class="c1"># write SNP</span>
+                <span class="k">if</span> <span class="n">sum_length</span><span class="p">:</span>
+                    <span class="n">write_snp</span><span class="p">(</span><span class="n">rp_snp</span><span class="p">,</span> <span class="n">ap_snp</span><span class="p">,</span> <span class="n">scores_out</span><span class="p">,</span> <span class="n">si</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">score_write</span><span class="p">,</span> <span class="n">rp_snp</span><span class="p">,</span> <span class="n">ap_snp</span><span class="p">,</span> <span class="n">si</span><span class="p">)</span>
+
+                <span class="c1"># update SNP index</span>
+                <span class="n">si</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># close genome</span>
+    <span class="n">genome_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># compute SAD distributions across variants</span>
+    <span class="n">write_pct</span><span class="p">(</span><span class="n">scores_out</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="score_gene_snps">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.score_gene_snps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">score_gene_snps</span><span class="p">(</span><span class="n">params_file</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">vcf_file</span><span class="p">,</span> <span class="n">worker_index</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Score SNPs in a VCF file with a SeqNN model.</span>
+
+<span class="sd">    :param params_file: Model parameters</span>
+<span class="sd">    :param model_file: Saved model weights</span>
+<span class="sd">    :param vcf_file: VCF</span>
+<span class="sd">    :param worker_index</span>
+<span class="sd">    :param options: options from cmd args</span>
+<span class="sd">    :return:</span>
+<span class="sd">    """</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># read parameters and targets</span>
+
+    <span class="c1"># read model parameters</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">params_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">params_open</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">params_open</span><span class="p">)</span>
+    <span class="n">params_model</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span>
+
+    <span class="c1"># read targets</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Must provide targets file to clarify stranded datasets"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">targets_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">targets_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># handle strand pairs</span>
+    <span class="k">if</span> <span class="s2">"strand_pair"</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># prep strand</span>
+        <span class="n">targets_strand_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">targets_prep_strand</span><span class="p">(</span><span class="n">targets_df</span><span class="p">)</span>
+
+        <span class="c1"># set strand pairs (using new indexing)</span>
+        <span class="n">orig_new_index</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+        <span class="n">targets_strand_pair</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">orig_new_index</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">params_model</span><span class="p">[</span><span class="s2">"strand_pair"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">targets_strand_pair</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">targets_strand_df</span> <span class="o">=</span> <span class="n">targets_df</span>
+
+    <span class="c1"># construct strand sum transform</span>
+    <span class="n">plus_mask</span> <span class="o">=</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">strand</span> <span class="o">!=</span> <span class="s2">"-"</span>
+    <span class="n">minus_mask</span> <span class="o">=</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">strand</span> <span class="o">!=</span> <span class="s2">"+"</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># setup model</span>
+
+    <span class="n">seqnn_model</span> <span class="o">=</span> <span class="n">seqnn</span><span class="o">.</span><span class="n">SeqNN</span><span class="p">(</span><span class="n">params_model</span><span class="p">)</span>
+
+    <span class="c1"># load model</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">tensorrt</span><span class="p">:</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">OptimizedModel</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">strand_pair</span><span class="p">)</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">loaded_model_fn</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">build_slice</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">seqnn_model</span><span class="o">.</span><span class="n">build_ensemble</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">rc</span><span class="p">)</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">input_shape</span>
+
+    <span class="c1"># make dummy predictions to warm up model</span>
+    <span class="n">dummy_input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">dummy_input_shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">seqnn_model</span><span class="p">(</span><span class="n">dummy_input</span><span class="p">)</span>
+
+    <span class="c1"># shift outside seqnn</span>
+    <span class="n">num_shifts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">)</span>
+    <span class="n">targets_length</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">target_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model_stride</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">model_strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">model_crop</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="o">.</span><span class="n">target_crops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">model_stride</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># load SNPs</span>
+
+    <span class="c1"># filter for worker SNPs</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">start_i</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">end_i</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># determine boundaries</span>
+        <span class="n">num_snps</span> <span class="o">=</span> <span class="n">bvcf</span><span class="o">.</span><span class="n">vcf_count</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+        <span class="n">worker_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_snps</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"int"</span><span class="p">)</span>
+        <span class="n">start_i</span> <span class="o">=</span> <span class="n">worker_bounds</span><span class="p">[</span><span class="n">worker_index</span><span class="p">]</span>
+        <span class="n">end_i</span> <span class="o">=</span> <span class="n">worker_bounds</span><span class="p">[</span><span class="n">worker_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># read SNPs</span>
+    <span class="n">snps</span> <span class="o">=</span> <span class="n">bvcf</span><span class="o">.</span><span class="n">vcf_snps</span><span class="p">(</span>
+        <span class="n">vcf_file</span><span class="p">,</span>
+        <span class="n">require_sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">flip_ref</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">validate_ref_fasta</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">genome_fasta</span><span class="p">,</span>
+        <span class="n">start_i</span><span class="o">=</span><span class="n">start_i</span><span class="p">,</span>
+        <span class="n">end_i</span><span class="o">=</span><span class="n">end_i</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># read genes</span>
+    <span class="n">transcriptome</span> <span class="o">=</span> <span class="n">Transcriptome</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">genes_gtf</span><span class="p">)</span>
+
+    <span class="c1"># cluster genes</span>
+    <span class="n">genesnp_clusters</span> <span class="o">=</span> <span class="n">cluster_genes</span><span class="p">(</span>
+        <span class="n">transcriptome</span><span class="p">,</span> <span class="n">params_model</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">],</span> <span class="n">options</span><span class="o">.</span><span class="n">cluster_pct</span>
+    <span class="p">)</span>
+
+    <span class="c1"># delimit sequence boundaries</span>
+    <span class="p">[</span><span class="n">gsc</span><span class="o">.</span><span class="n">delimit</span><span class="p">(</span><span class="n">params_model</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">],</span> <span class="n">model_crop</span><span class="p">)</span> <span class="k">for</span> <span class="n">gsc</span> <span class="ow">in</span> <span class="n">genesnp_clusters</span><span class="p">]</span>
+
+    <span class="c1"># assign SNPs to genes</span>
+    <span class="n">map_snps_genes</span><span class="p">(</span><span class="n">snps</span><span class="p">,</span> <span class="n">genesnp_clusters</span><span class="p">)</span>
+
+    <span class="c1"># remove genes w/o SNPs</span>
+    <span class="n">genesnp_clusters</span> <span class="o">=</span> <span class="p">[</span><span class="n">gsc</span> <span class="k">for</span> <span class="n">gsc</span> <span class="ow">in</span> <span class="n">genesnp_clusters</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gsc</span><span class="o">.</span><span class="n">snps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># open genome FASTA</span>
+    <span class="n">genome_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">genome_fasta</span><span class="p">)</span>
+
+    <span class="c1">#################################################################</span>
+    <span class="c1"># predict SNP scores, write output</span>
+
+    <span class="c1"># setup output</span>
+    <span class="n">scores_out</span> <span class="o">=</span> <span class="n">initialize_output_h5</span><span class="p">(</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">,</span>
+        <span class="n">snps</span><span class="p">,</span>
+        <span class="n">targets_length</span><span class="p">,</span>
+        <span class="n">targets_strand_df</span><span class="p">,</span>
+        <span class="n">num_shifts</span><span class="p">,</span>
+        <span class="n">genesnp_clusters</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># CPU computation</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score_write</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">gene_id</span><span class="p">,</span> <span class="n">snp_id</span><span class="p">):</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">compute_scores</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">snp_stat</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">snp_stats</span><span class="p">:</span>
+            <span class="n">stat_out</span> <span class="o">=</span> <span class="n">scores_out</span><span class="o">.</span><span class="n">require_group</span><span class="p">(</span><span class="n">snp_stat</span><span class="p">)</span>
+            <span class="n">snp_out</span> <span class="o">=</span> <span class="n">stat_out</span><span class="o">.</span><span class="n">require_group</span><span class="p">(</span><span class="n">snp_id</span><span class="p">)</span>
+            <span class="n">snp_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">gene_id</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">scores</span><span class="p">[</span><span class="n">snp_stat</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">untransform_old</span><span class="p">:</span>
+        <span class="n">untransform</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">untransform</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">untransform_preds</span>
+
+    <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">gsc</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">genesnp_clusters</span><span class="p">):</span>
+            <span class="n">snp_1hot_list</span> <span class="o">=</span> <span class="n">gsc</span><span class="o">.</span><span class="n">get_1hots</span><span class="p">(</span><span class="n">genome_open</span><span class="p">)</span>
+            <span class="n">ref_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">snp_1hot_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># predict reference</span>
+            <span class="n">ref_preds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">:</span>
+                <span class="n">ref_1hot_shift</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">hot1_augment</span><span class="p">(</span><span class="n">ref_1hot</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">)</span>
+                <span class="n">ref_preds_shift</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="p">(</span><span class="n">ref_1hot_shift</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># untransform predictions</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ref_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_preds_shift</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rpsf</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">untransform</span><span class="p">,</span> <span class="n">ref_preds_shift</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+                    <span class="n">ref_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rpsf</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">ai</span><span class="p">,</span> <span class="n">alt_1hot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">snp_1hot_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="n">alt_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># add left/right shifts for indels</span>
+                <span class="n">indel_size</span> <span class="o">=</span> <span class="n">gsc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">indel_size</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">alt_shifts</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">alt_shifts</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">:</span>
+                        <span class="n">alt_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span>
+                        <span class="n">alt_shifts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shift</span> <span class="o">-</span> <span class="n">indel_size</span><span class="p">)</span>
+
+                <span class="c1"># predict alternate</span>
+                <span class="n">alt_preds</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="n">alt_shifts</span><span class="p">:</span>
+                    <span class="n">alt_1hot_shift</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">hot1_augment</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">shift</span><span class="p">)</span>
+                    <span class="n">alt_preds_shift</span> <span class="o">=</span> <span class="n">seqnn_model</span><span class="p">(</span><span class="n">alt_1hot_shift</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="c1"># untransform predictions</span>
+                    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">alt_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_preds_shift</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">apsf</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">untransform</span><span class="p">,</span> <span class="n">alt_preds_shift</span><span class="p">,</span> <span class="n">targets_df</span><span class="p">)</span>
+                        <span class="n">alt_preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">apsf</span><span class="p">)</span>
+
+                <span class="c1"># result</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">targets_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># get result, only if not already gotten</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">Future</span><span class="p">):</span>
+                        <span class="n">ref_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">rpsf</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">rpsf</span> <span class="ow">in</span> <span class="n">ref_preds</span><span class="p">]</span>
+                    <span class="n">alt_preds</span> <span class="o">=</span> <span class="p">[</span><span class="n">apsf</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">apsf</span> <span class="ow">in</span> <span class="n">alt_preds</span><span class="p">]</span>
+
+                <span class="c1"># stitch indel shifts</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">indel_stitch</span><span class="p">:</span>
+                    <span class="n">snp_seq_pos</span> <span class="o">=</span> <span class="n">gsc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="n">gsc</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">model_crop</span>
+                    <span class="n">snp_seq_bin</span> <span class="o">=</span> <span class="n">snp_seq_pos</span> <span class="o">//</span> <span class="n">model_stride</span>
+                    <span class="n">alt_preds</span> <span class="o">=</span> <span class="n">stitch_preds</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">shifts</span><span class="p">,</span> <span class="n">snp_seq_bin</span><span class="p">)</span>
+
+                <span class="c1"># flip reference and alternate</span>
+                <span class="k">if</span> <span class="n">gsc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">flipped</span><span class="p">:</span>
+                    <span class="n">rp_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">)</span>
+                    <span class="n">ap_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rp_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+                    <span class="n">ap_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">)</span>
+
+                <span class="c1"># repeat reference predictions for indels w/o stitching</span>
+                <span class="k">if</span> <span class="n">indel_size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">indel_stitch</span><span class="p">:</span>
+                    <span class="n">rp_snp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">rp_snp</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">gsc</span><span class="o">.</span><span class="n">genes</span><span class="p">:</span>
+                    <span class="c1"># slice gene positions</span>
+                    <span class="n">gene_slice</span> <span class="o">=</span> <span class="n">gene</span><span class="o">.</span><span class="n">output_slice</span><span class="p">(</span>
+                        <span class="n">gsc</span><span class="o">.</span><span class="n">pstart</span><span class="p">,</span> <span class="n">gsc</span><span class="o">.</span><span class="n">pend</span> <span class="o">-</span> <span class="n">gsc</span><span class="o">.</span><span class="n">pstart</span><span class="p">,</span> <span class="n">model_stride</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">gene_slice</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">"WARNING: </span><span class="si">{</span><span class="n">gene</span><span class="o">.</span><span class="n">kv</span><span class="p">[</span><span class="s1">'gene_id'</span><span class="p">]</span><span class="si">}</span><span class="s2"> exons fall outside prediction boundaries."</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rp_gene</span> <span class="o">=</span> <span class="n">rp_snp</span><span class="p">[:,</span> <span class="n">gene_slice</span><span class="p">]</span>
+                        <span class="n">ap_gene</span> <span class="o">=</span> <span class="n">ap_snp</span><span class="p">[:,</span> <span class="n">gene_slice</span><span class="p">]</span>
+
+                        <span class="c1"># slice gene strand</span>
+                        <span class="k">if</span> <span class="n">gene</span><span class="o">.</span><span class="n">strand</span> <span class="o">==</span> <span class="s2">"+"</span><span class="p">:</span>
+                            <span class="n">rp_gene</span> <span class="o">=</span> <span class="n">rp_gene</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">plus_mask</span><span class="p">]</span>
+                            <span class="n">ap_gene</span> <span class="o">=</span> <span class="n">ap_gene</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">plus_mask</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">rp_gene</span> <span class="o">=</span> <span class="n">rp_gene</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">minus_mask</span><span class="p">]</span>
+                            <span class="n">ap_gene</span> <span class="o">=</span> <span class="n">ap_gene</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">minus_mask</span><span class="p">]</span>
+
+                        <span class="c1"># write SNP</span>
+                        <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                            <span class="n">score_write</span><span class="p">,</span>
+                            <span class="n">rp_gene</span><span class="p">,</span>
+                            <span class="n">ap_gene</span><span class="p">,</span>
+                            <span class="n">gene</span><span class="o">.</span><span class="n">kv</span><span class="p">[</span><span class="s2">"gene_id"</span><span class="p">],</span>
+                            <span class="n">gsc</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+    <span class="c1"># close open files</span>
+    <span class="n">genome_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="cluster_genes">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.cluster_genes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cluster_genes</span><span class="p">(</span><span class="n">transcriptome</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">center_pct</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Cluster genes into regions that will satisfy the required center_pct.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        transcriptome (Transcriptome): Transcriptome object.</span>
+<span class="sd">        seq_length (int): Sequence length.</span>
+<span class="sd">        center_pct (float): Percent of sequence length to cluster genes.</span>
+<span class="sd">    """</span>
+    <span class="n">valid_gene_distance</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">seq_length</span> <span class="o">*</span> <span class="n">center_pct</span><span class="p">)</span>
+
+    <span class="n">gene_clusters</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># re-sort genes by midpoint</span>
+    <span class="n">chromosomes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">gene</span><span class="o">.</span><span class="n">chrom</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">transcriptome</span><span class="o">.</span><span class="n">genes</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+    <span class="k">for</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">chromosomes</span><span class="p">:</span>
+        <span class="n">gene_pos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">gene_objs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">transcriptome</span><span class="o">.</span><span class="n">genes</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">gene</span><span class="o">.</span><span class="n">chrom</span> <span class="o">==</span> <span class="n">chrom</span><span class="p">:</span>
+                <span class="n">gene_pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gene</span><span class="o">.</span><span class="n">midpoint</span><span class="p">())</span>
+                <span class="n">gene_objs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span>
+
+        <span class="n">cluster_pos0</span> <span class="o">=</span> <span class="o">-</span><span class="n">valid_gene_distance</span>
+        <span class="k">for</span> <span class="n">gi</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">gene_pos</span><span class="p">):</span>
+            <span class="n">gene</span> <span class="o">=</span> <span class="n">gene_objs</span><span class="p">[</span><span class="n">gi</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">gene_pos</span><span class="p">[</span><span class="n">gi</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">cluster_pos0</span> <span class="o">+</span> <span class="n">valid_gene_distance</span><span class="p">:</span>
+                <span class="c1"># append to latest cluster</span>
+                <span class="n">gene_clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_gene</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># initialize new cluster</span>
+                <span class="n">gene_clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GeneSNPCluster</span><span class="p">())</span>
+                <span class="n">gene_clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_gene</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span>
+                <span class="n">cluster_pos0</span> <span class="o">=</span> <span class="n">gene_pos</span><span class="p">[</span><span class="n">gi</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">gene_clusters</span></div>
+
+
+
+<div class="viewcode-block" id="cluster_snps">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.cluster_snps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cluster_snps</span><span class="p">(</span><span class="n">snps</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">center_pct</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Cluster a sorted list of SNPs into regions that will satisfy</span>
+<span class="sd">       the required center_pct.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        snps [SNP]: List of SNPs.</span>
+<span class="sd">        seq_len (int): Sequence length.</span>
+<span class="sd">        center_pct (float): Percent of sequence length to cluster SNPs.</span>
+<span class="sd">    """</span>
+    <span class="n">valid_snp_distance</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">seq_len</span> <span class="o">*</span> <span class="n">center_pct</span><span class="p">)</span>
+
+    <span class="n">snp_clusters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cluster_chr</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cluster_pos0</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">snp</span><span class="o">.</span><span class="n">chr</span> <span class="o">==</span> <span class="n">cluster_chr</span> <span class="ow">and</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">cluster_pos0</span> <span class="o">+</span> <span class="n">valid_snp_distance</span><span class="p">:</span>
+            <span class="c1"># append to latest cluster</span>
+            <span class="n">snp_clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_snp</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># initialize new cluster</span>
+            <span class="n">snp_clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SNPCluster</span><span class="p">())</span>
+            <span class="n">snp_clusters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">add_snp</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span>
+            <span class="n">cluster_chr</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">chr</span>
+            <span class="n">cluster_pos0</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span>
+
+    <span class="k">return</span> <span class="n">snp_clusters</span></div>
+
+
+
+<div class="viewcode-block" id="compute_scores">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.compute_scores">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_scores</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="n">alt_preds</span><span class="p">,</span> <span class="n">snp_stats</span><span class="p">,</span> <span class="n">strand_transform</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compute SNP scores from reference and alternative predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ref_preds (np.array): Reference allele predictions.</span>
+<span class="sd">        alt_preds (np.array): Alternative allele predictions.</span>
+<span class="sd">        snp_stats [str]: List of SAD stats to compute.</span>
+<span class="sd">        strand_transform (scipy.sparse): Strand transform matrix.</span>
+<span class="sd">    """</span>
+    <span class="n">num_shifts</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">num_targets</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># log/sqrt</span>
+    <span class="n">ref_preds_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">ref_preds</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">alt_preds_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">alt_preds</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ref_preds_sqrt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">)</span>
+    <span class="n">alt_preds_sqrt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">alt_preds</span><span class="p">)</span>
+
+    <span class="c1"># sum across length, mean across shifts</span>
+    <span class="n">ref_preds_sum</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+    <span class="n">alt_preds_sum</span> <span class="o">=</span> <span class="n">alt_preds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+    <span class="n">ref_preds_log_sum</span> <span class="o">=</span> <span class="n">ref_preds_log</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+    <span class="n">alt_preds_log_sum</span> <span class="o">=</span> <span class="n">alt_preds_log</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+    <span class="n">ref_preds_sqrt_sum</span> <span class="o">=</span> <span class="n">ref_preds_sqrt</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+    <span class="n">alt_preds_sqrt_sum</span> <span class="o">=</span> <span class="n">alt_preds_sqrt</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_shifts</span>
+
+    <span class="c1"># SED computation (sum first, then log)</span>
+    <span class="n">ref_preds_log_sed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">ref_preds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">alt_preds_log_sed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">alt_preds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># difference</span>
+    <span class="n">altref_diff</span> <span class="o">=</span> <span class="n">alt_preds</span> <span class="o">-</span> <span class="n">ref_preds</span>
+    <span class="n">altref_log_diff</span> <span class="o">=</span> <span class="n">alt_preds_log</span> <span class="o">-</span> <span class="n">ref_preds_log</span>
+    <span class="n">altref_sqrt_diff</span> <span class="o">=</span> <span class="n">alt_preds_sqrt</span> <span class="o">-</span> <span class="n">ref_preds_sqrt</span>
+
+    <span class="c1"># initialize scores dict</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">strand_clip_save</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">d2</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">strand_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">d2</span><span class="p">:</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">score</span> <span class="o">@</span> <span class="n">strand_transform</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">score</span> <span class="o">@</span> <span class="n">strand_transform</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+        <span class="n">scores</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+
+    <span class="c1"># compare reference to alternative via sum subtraction</span>
+    <span class="k">if</span> <span class="s2">"SUM"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sad</span> <span class="o">=</span> <span class="n">alt_preds_sum</span> <span class="o">-</span> <span class="n">ref_preds_sum</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"SUM"</span><span class="p">,</span> <span class="n">sad</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"logSUM"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">log_sad</span> <span class="o">=</span> <span class="n">alt_preds_log_sum</span> <span class="o">-</span> <span class="n">ref_preds_log_sum</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"logSUM"</span><span class="p">,</span> <span class="n">log_sad</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"logSED"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">log_sed</span> <span class="o">=</span> <span class="n">alt_preds_log_sed</span> <span class="o">-</span> <span class="n">ref_preds_log_sed</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"logSED"</span><span class="p">,</span> <span class="n">log_sed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"sqrtSUM"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sqrt_sad</span> <span class="o">=</span> <span class="n">alt_preds_sqrt_sum</span> <span class="o">-</span> <span class="n">ref_preds_sqrt_sum</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"sqrtSUM"</span><span class="p">,</span> <span class="n">sqrt_sad</span><span class="p">)</span>
+
+    <span class="c1"># compare reference to alternative via max subtraction</span>
+    <span class="k">if</span> <span class="s2">"SAX"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">altref_adiff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">altref_diff</span><span class="p">)</span>
+        <span class="n">sax</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shifts</span><span class="p">):</span>
+            <span class="n">max_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">altref_adiff</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">sax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">altref_diff</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">max_i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_targets</span><span class="p">)])</span>
+        <span class="n">sax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sax</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"SAX"</span><span class="p">,</span> <span class="n">sax</span><span class="p">)</span>
+
+    <span class="c1"># L1 norm of difference vector</span>
+    <span class="k">if</span> <span class="s2">"D1"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sad_d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"D1"</span><span class="p">,</span> <span class="n">sad_d1</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s2">"logD1"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">log_d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_log_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"logD1"</span><span class="p">,</span> <span class="n">log_d1</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s2">"sqrtD1"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sqrt_d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_sqrt_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"sqrtD1"</span><span class="p">,</span> <span class="n">sqrt_d1</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># L2 norm of difference vector</span>
+    <span class="k">if</span> <span class="s2">"D2"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sad_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"D2"</span><span class="p">,</span> <span class="n">sad_d2</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">d2</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"logD2"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">log_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_log_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"logD2"</span><span class="p">,</span> <span class="n">log_d2</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">d2</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"sqrtD2"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sqrt_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">altref_sqrt_diff</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"sqrtD2"</span><span class="p">,</span> <span class="n">sqrt_d2</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">d2</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">"JS"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="c1"># normalized scores</span>
+        <span class="n">pseudocounts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">ref_preds</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ref_preds_norm</span> <span class="o">=</span> <span class="n">ref_preds</span> <span class="o">+</span> <span class="n">pseudocounts</span>
+        <span class="n">ref_preds_norm</span> <span class="o">/=</span> <span class="n">ref_preds_norm</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">alt_preds_norm</span> <span class="o">=</span> <span class="n">alt_preds</span> <span class="o">+</span> <span class="n">pseudocounts</span>
+        <span class="n">alt_preds_norm</span> <span class="o">/=</span> <span class="n">alt_preds_norm</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># compare normalized JS</span>
+        <span class="n">js_dist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shifts</span><span class="p">):</span>
+            <span class="n">ref_alt_entr</span> <span class="o">=</span> <span class="n">rel_entr</span><span class="p">(</span><span class="n">ref_preds_norm</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">alt_preds_norm</span><span class="p">[</span><span class="n">s</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">alt_ref_entr</span> <span class="o">=</span> <span class="n">rel_entr</span><span class="p">(</span><span class="n">alt_preds_norm</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">ref_preds_norm</span><span class="p">[</span><span class="n">s</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">js_dist</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ref_alt_entr</span> <span class="o">+</span> <span class="n">alt_ref_entr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">js_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">js_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># handling strand this way is incorrect, but I'm punting for now</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"JS"</span><span class="p">,</span> <span class="n">js_dist</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">"logJS"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="c1"># normalized scores</span>
+        <span class="n">pseudocounts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">ref_preds_log</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">ref_preds_log_norm</span> <span class="o">=</span> <span class="n">ref_preds_log</span> <span class="o">+</span> <span class="n">pseudocounts</span>
+        <span class="n">ref_preds_log_norm</span> <span class="o">/=</span> <span class="n">ref_preds_log_norm</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">alt_preds_log_norm</span> <span class="o">=</span> <span class="n">alt_preds_log</span> <span class="o">+</span> <span class="n">pseudocounts</span>
+        <span class="n">alt_preds_log_norm</span> <span class="o">/=</span> <span class="n">alt_preds_log_norm</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># compare normalized JS</span>
+        <span class="n">log_js_dist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_shifts</span><span class="p">):</span>
+            <span class="n">rps</span> <span class="o">=</span> <span class="n">ref_preds_log_norm</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">aps</span> <span class="o">=</span> <span class="n">alt_preds_log_norm</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">ref_alt_entr</span> <span class="o">=</span> <span class="n">rel_entr</span><span class="p">(</span><span class="n">rps</span><span class="p">,</span> <span class="n">aps</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">alt_ref_entr</span> <span class="o">=</span> <span class="n">rel_entr</span><span class="p">(</span><span class="n">aps</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">log_js_dist</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ref_alt_entr</span> <span class="o">+</span> <span class="n">alt_ref_entr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">log_js_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">log_js_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># handling strand this way is incorrect, but I'm punting for now</span>
+        <span class="n">strand_clip_save</span><span class="p">(</span><span class="s2">"logJS"</span><span class="p">,</span> <span class="n">log_js_dist</span><span class="p">)</span>
+
+    <span class="c1"># predictions</span>
+    <span class="k">if</span> <span class="s2">"REF"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">ref_preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">ref_preds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
+        <span class="p">)</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">"REF"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref_preds</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"ALT"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">alt_preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">alt_preds</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
+        <span class="p">)</span>
+        <span class="n">scores</span><span class="p">[</span><span class="s2">"ALT"</span><span class="p">]</span> <span class="o">=</span> <span class="n">alt_preds</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">scores</span></div>
+
+
+
+<div class="viewcode-block" id="initialize_output_h5">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.initialize_output_h5">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">initialize_output_h5</span><span class="p">(</span>
+    <span class="n">out_dir</span><span class="p">,</span>
+    <span class="n">snp_stats</span><span class="p">,</span>
+    <span class="n">snps</span><span class="p">,</span>
+    <span class="n">targets_length</span><span class="p">,</span>
+    <span class="n">targets_df</span><span class="p">,</span>
+    <span class="n">num_shifts</span><span class="p">,</span>
+    <span class="n">geneseq_clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Initialize an output HDF5 file for SAD stats.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        out_dir (str): Output directory.</span>
+<span class="sd">        snp_stats [str]: List of SAD stats to compute.</span>
+<span class="sd">        snps [SNP]: List of SNPs.</span>
+<span class="sd">        targets_length (int): Targets' sequence length</span>
+<span class="sd">        targets_df (pd.DataFrame): Targets DataFrame.</span>
+<span class="sd">        num_shifts (int): Number of shifts.</span>
+<span class="sd">        geneseq_clusters [GeneSNPCluster]: Gene sequence clusters.</span>
+<span class="sd">    """</span>
+
+    <span class="n">num_targets</span> <span class="o">=</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_snps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">snps</span><span class="p">)</span>
+
+    <span class="n">scores_out</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">/scores.h5"</span> <span class="o">%</span> <span class="n">out_dir</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+
+    <span class="c1"># write SNPs</span>
+    <span class="n">snp_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span> <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">],</span> <span class="s2">"S"</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"snp"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">snp_ids</span><span class="p">)</span>
+
+    <span class="c1"># write SNP chr</span>
+    <span class="n">snp_chr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span> <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">],</span> <span class="s2">"S"</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"chr"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">snp_chr</span><span class="p">)</span>
+
+    <span class="c1"># write SNP pos</span>
+    <span class="n">snp_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"uint32"</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"pos"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">snp_pos</span><span class="p">)</span>
+
+    <span class="c1"># write SNP reference allele</span>
+    <span class="n">snp_refs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">snp_alts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">snp</span><span class="o">.</span><span class="n">flipped</span><span class="p">:</span>
+            <span class="n">snp_refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">snp_alts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">snp_refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span>
+            <span class="n">snp_alts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">snp_refs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">snp_refs</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span>
+    <span class="n">snp_alts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">snp_alts</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"ref_allele"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">snp_refs</span><span class="p">)</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"alt_allele"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">snp_alts</span><span class="p">)</span>
+
+    <span class="c1"># write targets</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"target_ids"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">identifier</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">))</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+        <span class="s2">"target_labels"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">geneseq_clusters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># write genes</span>
+        <span class="n">gene_ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gsc</span> <span class="ow">in</span> <span class="n">geneseq_clusters</span><span class="p">:</span>
+            <span class="n">gene_ids</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">gene</span><span class="o">.</span><span class="n">kv</span><span class="p">[</span><span class="s2">"gene_id"</span><span class="p">]</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">gsc</span><span class="o">.</span><span class="n">genes</span><span class="p">])</span>
+        <span class="n">gene_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gene_ids</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span>
+        <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"gene"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">gene_ids</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># initialize stats</span>
+        <span class="k">for</span> <span class="n">snp_stat</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">snp_stat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"REF"</span><span class="p">,</span> <span class="s2">"ALT"</span><span class="p">]:</span>
+                <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">snp_stat</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_snps</span><span class="p">,</span> <span class="n">num_shifts</span><span class="p">,</span> <span class="n">targets_length</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">snp_stat</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_snps</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span>
+                <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">scores_out</span></div>
+
+
+
+<div class="viewcode-block" id="make_alt_1hot">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.make_alt_1hot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_alt_1hot</span><span class="p">(</span><span class="n">ref_1hot</span><span class="p">,</span> <span class="n">snp_seq_pos</span><span class="p">,</span> <span class="n">ref_allele</span><span class="p">,</span> <span class="n">alt_allele</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return alternative allele one hot coding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ref_1hot (np.array): Reference allele one hot coding.</span>
+<span class="sd">        snp_seq_pos (int): SNP position in sequence.</span>
+<span class="sd">        ref_allele (str): Reference allele.</span>
+<span class="sd">        alt_allele (str): Alternative allele.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        np.array: Alternative allele one hot coding.</span>
+<span class="sd">    """</span>
+    <span class="n">ref_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_allele</span><span class="p">)</span>
+    <span class="n">alt_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_allele</span><span class="p">)</span>
+
+    <span class="c1"># copy reference</span>
+    <span class="n">alt_1hot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ref_1hot</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">alt_n</span> <span class="o">==</span> <span class="n">ref_n</span><span class="p">:</span>
+        <span class="c1"># SNP</span>
+        <span class="n">dna</span><span class="o">.</span><span class="n">hot1_set</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">snp_seq_pos</span><span class="p">,</span> <span class="n">alt_allele</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ref_n</span> <span class="o">&gt;</span> <span class="n">alt_n</span><span class="p">:</span>
+        <span class="c1"># deletion</span>
+        <span class="n">delete_len</span> <span class="o">=</span> <span class="n">ref_n</span> <span class="o">-</span> <span class="n">alt_n</span>
+        <span class="k">if</span> <span class="n">ref_allele</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">alt_allele</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">dna</span><span class="o">.</span><span class="n">hot1_delete</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">snp_seq_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">delete_len</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"WARNING: Deletion first nt does not match: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">"</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">ref_allele</span><span class="p">,</span> <span class="n">alt_allele</span><span class="p">),</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># insertion</span>
+        <span class="k">if</span> <span class="n">ref_allele</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">alt_allele</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">dna</span><span class="o">.</span><span class="n">hot1_insert</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">,</span> <span class="n">snp_seq_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">alt_allele</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"WARNING: Insertion first nt does not match: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">"</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">ref_allele</span><span class="p">,</span> <span class="n">alt_allele</span><span class="p">),</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">alt_1hot</span></div>
+
+
+
+<div class="viewcode-block" id="make_gene_bedt">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.make_gene_bedt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_gene_bedt</span><span class="p">(</span><span class="n">genesnp_clusters</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Make a BedTool object for all gene sequences."""</span>
+    <span class="n">gene_bed_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">gi</span><span class="p">,</span> <span class="n">gsc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">genesnp_clusters</span><span class="p">):</span>
+        <span class="n">geneseq_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">gsc</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">gene_bed_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">gsc</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">geneseq_start</span><span class="p">,</span> <span class="n">gsc</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">gi</span><span class="p">))</span>
+    <span class="n">gene_bedt</span> <span class="o">=</span> <span class="n">pybedtools</span><span class="o">.</span><span class="n">BedTool</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gene_bed_lines</span><span class="p">),</span> <span class="n">from_string</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gene_bedt</span></div>
+
+
+
+<div class="viewcode-block" id="make_snp_bedt">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.make_snp_bedt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_snp_bedt</span><span class="p">(</span><span class="n">snps</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Make a BedTool object for all SNPs"""</span>
+    <span class="n">snp_bed_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">snp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">snps</span><span class="p">):</span>
+        <span class="n">snp_bed_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">si</span><span class="p">))</span>
+    <span class="n">snp_bedt</span> <span class="o">=</span> <span class="n">pybedtools</span><span class="o">.</span><span class="n">BedTool</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">snp_bed_lines</span><span class="p">),</span> <span class="n">from_string</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">snp_bedt</span></div>
+
+
+
+<div class="viewcode-block" id="map_snps_genes">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.map_snps_genes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_snps_genes</span><span class="p">(</span><span class="n">snps</span><span class="p">,</span> <span class="n">genesnp_clusters</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Map SNPs to gene sequences."""</span>
+    <span class="n">geneseq_bedt</span> <span class="o">=</span> <span class="n">make_gene_bedt</span><span class="p">(</span><span class="n">genesnp_clusters</span><span class="p">)</span>
+    <span class="n">snp_bedt</span> <span class="o">=</span> <span class="n">make_snp_bedt</span><span class="p">(</span><span class="n">snps</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">overlap</span> <span class="ow">in</span> <span class="n">geneseq_bedt</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">snp_bedt</span><span class="p">,</span> <span class="n">wa</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">wb</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">gchr</span><span class="p">,</span> <span class="n">gstart</span><span class="p">,</span> <span class="n">gend</span><span class="p">,</span> <span class="n">gi</span><span class="p">,</span> <span class="n">schr</span><span class="p">,</span> <span class="n">spos</span><span class="p">,</span> <span class="n">send</span><span class="p">,</span> <span class="n">si</span> <span class="o">=</span> <span class="n">overlap</span>
+        <span class="n">gi</span><span class="p">,</span> <span class="n">si</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">gi</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">si</span><span class="p">)</span>
+        <span class="n">genesnp_clusters</span><span class="p">[</span><span class="n">gi</span><span class="p">]</span><span class="o">.</span><span class="n">add_snp</span><span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="n">si</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="stitch_preds">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.stitch_preds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stitch_preds</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">shifts</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Stitch indel left and right compensation shifts.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        preds [np.array]: List of predictions.</span>
+<span class="sd">        shifts [int]: List of shifts.</span>
+<span class="sd">        pos (int): SNP position to stitch at.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">preds_stitch</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">hi</span><span class="p">,</span> <span class="n">shift</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shifts</span><span class="p">):</span>
+        <span class="n">hil</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">hi</span>
+        <span class="n">hir</span> <span class="o">=</span> <span class="n">hil</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">preds_stitch_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">preds</span><span class="p">[</span><span class="n">hil</span><span class="p">][:</span><span class="n">pos</span><span class="p">],</span> <span class="n">preds</span><span class="p">[</span><span class="n">hir</span><span class="p">][</span><span class="n">pos</span><span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">preds_stitch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">preds_stitch_i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">preds_stitch</span></div>
+
+
+
+<div class="viewcode-block" id="write_pct">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.write_pct">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_pct</span><span class="p">(</span><span class="n">scores_out</span><span class="p">,</span> <span class="n">snp_stats</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compute percentile values for each target and write to HDF5.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        scores_out (h5py.File): Output HDF5 file.</span>
+<span class="sd">        snp_stats [str]: List of SAD stats to compute.</span>
+<span class="sd">    """</span>
+    <span class="c1"># define percentiles</span>
+    <span class="n">d_fine</span> <span class="o">=</span> <span class="mf">0.001</span>
+    <span class="n">d_coarse</span> <span class="o">=</span> <span class="mf">0.01</span>
+    <span class="n">percentiles_neg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d_fine</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">d_fine</span><span class="p">)</span>
+    <span class="n">percentiles_base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">d_coarse</span><span class="p">)</span>
+    <span class="n">percentiles_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">d_fine</span><span class="p">)</span>
+
+    <span class="n">percentiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">percentiles_neg</span><span class="p">,</span> <span class="n">percentiles_base</span><span class="p">,</span> <span class="n">percentiles_pos</span><span class="p">])</span>
+    <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"percentiles"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">percentiles</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">snp_stat</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">snp_stat</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"REF"</span><span class="p">,</span> <span class="s2">"ALT"</span><span class="p">]:</span>
+            <span class="n">snp_stat_pct</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">_pct"</span> <span class="o">%</span> <span class="n">snp_stat</span>
+
+            <span class="c1"># compute</span>
+            <span class="n">sad_pct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">scores_out</span><span class="p">[</span><span class="n">snp_stat</span><span class="p">],</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">percentiles</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+            <span class="n">sad_pct</span> <span class="o">=</span> <span class="n">sad_pct</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+
+            <span class="c1"># save</span>
+            <span class="n">scores_out</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">snp_stat_pct</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">sad_pct</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="write_snp">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.write_snp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_snp</span><span class="p">(</span><span class="n">ref_preds_sum</span><span class="p">,</span> <span class="n">alt_preds_sum</span><span class="p">,</span> <span class="n">scores_out</span><span class="p">,</span> <span class="n">si</span><span class="p">,</span> <span class="n">snp_stats</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Write SNP predictions to HDF, assuming the length dimension has</span>
+<span class="sd">    been collapsed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ref_preds_sum (np.array): Reference allele predictions.</span>
+<span class="sd">        alt_preds_sum (np.array): Alternative allele predictions.</span>
+<span class="sd">        scores_out (h5py.File): Output HDF5 file.</span>
+<span class="sd">        si (int): SNP index.</span>
+<span class="sd">        snp_stats [str]: List of SAD stats to compute.</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># compare reference to alternative via mean subtraction</span>
+    <span class="k">if</span> <span class="s2">"SAD"</span> <span class="ow">in</span> <span class="n">snp_stats</span><span class="p">:</span>
+        <span class="n">sad</span> <span class="o">=</span> <span class="n">alt_preds_sum</span> <span class="o">-</span> <span class="n">ref_preds_sum</span>
+        <span class="n">sad</span> <span class="o">=</span> <span class="n">sad</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">scores_out</span><span class="p">[</span><span class="s2">"SAD"</span><span class="p">][</span><span class="n">si</span><span class="p">]</span> <span class="o">=</span> <span class="n">sad</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="SNPCluster">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.SNPCluster">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SNPCluster</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SNPCluster.add_snp">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.SNPCluster.add_snp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_snp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snp</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Add SNP to cluster."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SNPCluster.delimit">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.SNPCluster.delimit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delimit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Delimit sequence boundaries."""</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snps</span><span class="p">]</span>
+        <span class="n">pos_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">pos_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">pos_mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">pos_min</span> <span class="o">+</span> <span class="n">pos_max</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">chr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">pos_mid</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">seq_len</span></div>
+
+
+        <span class="c1"># for snp in self.snps:</span>
+        <span class="c1">#     snp.seq_pos = snp.pos - 1 - self.start</span>
+
+<div class="viewcode-block" id="SNPCluster.get_1hots">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.SNPCluster.get_1hots">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_1hots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">genome_open</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Get list of one hot coded sequences."""</span>
+        <span class="n">seqs1_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># extract reference</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ref_seq</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">)</span> <span class="o">+</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ref_seq</span> <span class="o">=</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># extend to full length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">:</span>
+            <span class="n">ref_seq</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">))</span>
+
+        <span class="c1"># verify reference alleles</span>
+        <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snps</span><span class="p">:</span>
+            <span class="n">ref_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span>
+            <span class="n">snp_pos</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">ref_snp</span> <span class="o">=</span> <span class="n">ref_seq</span><span class="p">[</span><span class="n">snp_pos</span> <span class="p">:</span> <span class="n">snp_pos</span> <span class="o">+</span> <span class="n">ref_n</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span> <span class="o">!=</span> <span class="n">ref_snp</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"ERROR: </span><span class="si">%s</span><span class="s2"> does not match reference </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="n">ref_snp</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># 1 hot code reference sequence</span>
+        <span class="n">ref_1hot</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">dna_1hot</span><span class="p">(</span><span class="n">ref_seq</span><span class="p">)</span>
+        <span class="n">seqs1_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">ref_1hot</span><span class="p">]</span>
+
+        <span class="c1"># make alternative 1 hot coded sequences</span>
+        <span class="c1"># (assuming SNP is 1-based indexed)</span>
+        <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snps</span><span class="p">:</span>
+            <span class="n">snp_pos</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">alt_1hot</span> <span class="o">=</span> <span class="n">make_alt_1hot</span><span class="p">(</span>
+                <span class="n">ref_1hot</span><span class="p">,</span> <span class="n">snp_pos</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">seqs1_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">alt_1hot</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">seqs1_list</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="GeneSNPCluster">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.GeneSNPCluster">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GeneSNPCluster</span><span class="p">(</span><span class="n">SNPCluster</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">genes</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="GeneSNPCluster.add_gene">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.GeneSNPCluster.add_gene">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_gene</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gene</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Add gene to cluster."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">genes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GeneSNPCluster.delimit">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.snps.GeneSNPCluster.delimit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delimit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">crop</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Delimit sequence boundaries."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">genes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">chrom</span>
+        <span class="n">midp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">midpoint</span><span class="p">()</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">genes</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">midp</span> <span class="o">-</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">seq_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pstart</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">crop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pend</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">crop</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

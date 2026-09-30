@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.scripts package &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="baskerville.helpers package" href="baskerville.helpers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="baskerville.html">baskerville package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="baskerville.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="baskerville.helpers.html">baskerville.helpers package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">baskerville.scripts package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_data">baskerville.scripts.hound_data module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_data_align">baskerville.scripts.hound_data_align module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_data_read">baskerville.scripts.hound_data_read module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_data_write">baskerville.scripts.hound_data_write module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_eval">baskerville.scripts.hound_eval module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#baskerville-scripts-hound-eval-genes-module">baskerville.scripts.hound_eval_genes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_eval_spec">baskerville.scripts.hound_eval_spec module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_isd_bed">baskerville.scripts.hound_isd_bed module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_ism_bed">baskerville.scripts.hound_ism_bed module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_ism_snp">baskerville.scripts.hound_ism_snp module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_predbed">baskerville.scripts.hound_predbed module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_predvcf">baskerville.scripts.hound_predvcf module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_snp">baskerville.scripts.hound_snp module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#baskerville-scripts-hound-snp-slurm-module">baskerville.scripts.hound_snp_slurm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_snpgene">baskerville.scripts.hound_snpgene module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_train">baskerville.scripts.hound_train module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts.hound_transfer">baskerville.scripts.hound_transfer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.scripts">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.adapters">baskerville.adapters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.bed">baskerville.bed module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.blocks">baskerville.blocks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.data">baskerville.data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.dataset">baskerville.dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.dna">baskerville.dna module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.gene">baskerville.gene module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.layers">baskerville.layers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.metrics">baskerville.metrics module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.seqnn">baskerville.seqnn module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.snps">baskerville.snps module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.stream">baskerville.stream module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.trainer">baskerville.trainer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.transfer">baskerville.transfer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.vcf">baskerville.vcf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="baskerville.html">baskerville package</a></li>
+      <li class="breadcrumb-item active">baskerville.scripts package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/baskerville.scripts.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="baskerville-scripts-package">
+<h1>baskerville.scripts package<a class="headerlink" href="#baskerville-scripts-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-baskerville.scripts.hound_data">
+<span id="baskerville-scripts-hound-data-module"></span><h2>baskerville.scripts.hound_data module<a class="headerlink" href="#module-baskerville.scripts.hound_data" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.curate_peaks">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">curate_peaks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pool_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_bp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#curate_peaks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.curate_peaks" title="Link to this definition"></a></dt>
+<dd><p>Merge all peaks, round to nearest pool_width, and add cropped bp.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.divide_contigs_chr">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">divide_contigs_chr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_chrs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_chrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#divide_contigs_chr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.divide_contigs_chr" title="Link to this definition"></a></dt>
+<dd><p>Divide list of contigs into train/valid/test lists
+by chromosome.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.divide_contigs_folds">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">divide_contigs_folds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#divide_contigs_folds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.divide_contigs_folds" title="Link to this definition"></a></dt>
+<dd><p>Divide list of contigs into cross fold lists.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.divide_contigs_pct">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">divide_contigs_pct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_pct</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_pct</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pct_abstain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#divide_contigs_pct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.divide_contigs_pct" title="Link to this definition"></a></dt>
+<dd><p>Divide list of contigs into train/valid/test lists,
+aiming for the specified nucleotide percentages.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.limit_contigs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">limit_contigs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_bed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#limit_contigs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.limit_contigs" title="Link to this definition"></a></dt>
+<dd><p>Limit to contigs overlapping the given BED.</p>
+<dl class="simple">
+<dt>Args</dt><dd><p>contigs: list of Contigs
+filter_bed: BED file to filter by</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of Contigs</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>fcontigs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_data_align">
+<span id="baskerville-scripts-hound-data-align-module"></span><h2>baskerville.scripts.hound_data_align module<a class="headerlink" href="#module-baskerville.scripts.hound_data_align" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">GraphSeq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genome</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq.chr">
+<span class="sig-name descname"><span class="pre">chr</span></span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq.chr" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq.end">
+<span class="sig-name descname"><span class="pre">end</span></span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq.end" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq.genome">
+<span class="sig-name descname"><span class="pre">genome</span></span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq.genome" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq.net">
+<span class="sig-name descname"><span class="pre">net</span></span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq.net" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.GraphSeq.start">
+<span class="sig-name descname"><span class="pre">start</span></span><a class="headerlink" href="#baskerville.scripts.hound_data_align.GraphSeq.start" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.break_large_contigs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">break_large_contigs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">break_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#break_large_contigs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.break_large_contigs" title="Link to this definition"></a></dt>
+<dd><p>Break large contigs in half until all contigs are under
+the size threshold.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.connect_contigs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">connect_contigs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align_net_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_fill_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_olap_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genome_out_dirs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#connect_contigs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.connect_contigs" title="Link to this definition"></a></dt>
+<dd><p>Connect contigs across genomes by forming a graph that includes
+net format aligning regions and contigs. Compute contig components
+as connected components of that graph.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.contig_stats_genome">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">contig_stats_genome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contigs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#contig_stats_genome"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.contig_stats_genome" title="Link to this definition"></a></dt>
+<dd><p>Compute contig statistics within each genome.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.divide_components_folds">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">divide_components_folds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contig_components</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#divide_components_folds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.divide_components_folds" title="Link to this definition"></a></dt>
+<dd><p>Divide contig connected components into cross fold lists.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.divide_components_pct">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">divide_components_pct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contig_components</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_pct</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_pct</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pct_abstain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#divide_components_pct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.divide_components_pct" title="Link to this definition"></a></dt>
+<dd><p>Divide contig connected components into train/valid/test,
+and aiming for the specified nucleotide percentages.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.intersect_contigs_nets">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">intersect_contigs_nets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">graph_contigs_nets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genome_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genome_out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_olap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#intersect_contigs_nets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.intersect_contigs_nets" title="Link to this definition"></a></dt>
+<dd><p>Intersect the contigs and nets from genome_i, adding the
+overlaps as edges to graph_contigs_nets.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.make_net_graph">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">make_net_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">align_net_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">net_fill_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#make_net_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.make_net_graph" title="Link to this definition"></a></dt>
+<dd><p>Construct a Graph with aligned net intervals connected
+by edges.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.quantify_leakage">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">quantify_leakage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">align_net_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#quantify_leakage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.quantify_leakage" title="Link to this definition"></a></dt>
+<dd><p>Quanitfy the leakage across sequence sets.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.report_divide_stats">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">report_divide_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fold_contigs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#report_divide_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.report_divide_stats" title="Link to this definition"></a></dt>
+<dd><p>Report genome-specific statistics about the division of contigs
+between sets.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_align.report_divide_stats_v1">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_align.</span></span><span class="sig-name descname"><span class="pre">report_divide_stats_v1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_contigs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_contigs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_align.html#report_divide_stats_v1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_align.report_divide_stats_v1" title="Link to this definition"></a></dt>
+<dd><p>Report genome-specific statistics about the division of contigs
+between train/valid/test sets.</p>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_data_read">
+<span id="baskerville-scripts-hound-data-read-module"></span><h2>baskerville.scripts.hound_data_read module<a class="headerlink" href="#module-baskerville.scripts.hound_data_read" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.CovFace">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_read.</span></span><span class="sig-name descname"><span class="pre">CovFace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cov_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#CovFace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.CovFace" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.CovFace.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#CovFace.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.CovFace.close" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.CovFace.preprocess_bed">
+<span class="sig-name descname"><span class="pre">preprocess_bed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#CovFace.preprocess_bed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.CovFace.preprocess_bed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.CovFace.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#CovFace.read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.CovFace.read" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.interp_nan">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_read.</span></span><span class="sig-name descname"><span class="pre">interp_nan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'linear'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#interp_nan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.interp_nan" title="Link to this definition"></a></dt>
+<dd><p>Linearly interpolate to fill NaN.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_read.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_read.read_blacklist">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_read.</span></span><span class="sig-name descname"><span class="pre">read_blacklist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blacklist_bed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">black_buffer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_read.html#read_blacklist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_read.read_blacklist" title="Link to this definition"></a></dt>
+<dd><p>Construct interval trees of blacklist
+regions for each chromosome.</p>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_data_write">
+<span id="baskerville-scripts-hound-data-write-module"></span><h2>baskerville.scripts.hound_data_write module<a class="headerlink" href="#module-baskerville.scripts.hound_data_write" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.feature_bytes">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">feature_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#feature_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.feature_bytes" title="Link to this definition"></a></dt>
+<dd><p>Convert numpy arrays to bytes features.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.feature_floats">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">feature_floats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#feature_floats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.feature_floats" title="Link to this definition"></a></dt>
+<dd><p>Convert numpy arrays to floats features.
+Requires more space than bytes for float16</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.fetch_dna">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">fetch_dna</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fasta_open</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#fetch_dna"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.fetch_dna" title="Link to this definition"></a></dt>
+<dd><p>Fetch DNA when start/end may reach beyond chromosomes.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.rround">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">rround</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#rround"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.rround" title="Link to this definition"></a></dt>
+<dd><p>Round to the specified number of decimals, randomly sampling
+the last digit according to a bernoulli RV.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_data_write.tround">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_data_write.</span></span><span class="sig-name descname"><span class="pre">tround</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_data_write.html#tround"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_data_write.tround" title="Link to this definition"></a></dt>
+<dd><p>Truncate to the specified number of decimals.</p>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_eval">
+<span id="baskerville-scripts-hound-eval-module"></span><h2>baskerville.scripts.hound_eval module<a class="headerlink" href="#module-baskerville.scripts.hound_eval" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_eval.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_eval.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_eval.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_eval.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="baskerville-scripts-hound-eval-genes-module">
+<h2>baskerville.scripts.hound_eval_genes module<a class="headerlink" href="#baskerville-scripts-hound-eval-genes-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-baskerville.scripts.hound_eval_spec">
+<span id="baskerville-scripts-hound-eval-spec-module"></span><h2>baskerville.scripts.hound_eval_spec module<a class="headerlink" href="#module-baskerville.scripts.hound_eval_spec" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_eval_spec.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_eval_spec.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_eval_spec.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_eval_spec.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_isd_bed">
+<span id="baskerville-scripts-hound-isd-bed-module"></span><h2>baskerville.scripts.hound_isd_bed module<a class="headerlink" href="#module-baskerville.scripts.hound_isd_bed" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_isd_bed.clip_float">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_isd_bed.</span></span><span class="sig-name descname"><span class="pre">clip_float</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.float16'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_isd_bed.html#clip_float"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_isd_bed.clip_float" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_isd_bed.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_isd_bed.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_isd_bed.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_isd_bed.main" title="Link to this definition"></a></dt>
+<dd><p>hound_isd_sed.py</p>
+<p>Perform an in silico deletion mutagenesis of sequences in a BED file,
+where predictions are centered on the variant and SED/logSED scores can be calculated.
+Outputs a separate .h5 file for each .bed entry.</p>
+<dl>
+<dt>Usage:</dt><dd><p>hound_isd_sed.py [options] &lt;params_file&gt; &lt;model_file&gt; &lt;bed_file&gt;</p>
+</dd>
+<dt>Options:</dt><dd><dl class="option-list">
+<dt><kbd><span class="option">-f <var>&lt;genome_fasta&gt;</var></span></kbd></dt>
+<dd><p>Genome FASTA for sequences</p>
+</dd>
+<dt><kbd><span class="option">-g <var>&lt;genes_gtf&gt;</var></span></kbd></dt>
+<dd><p>GTF for gene definition</p>
+</dd>
+<dt><kbd><span class="option">-o <var>&lt;out_dir&gt;</var></span></kbd></dt>
+<dd><p>Output directory</p>
+</dd>
+<dt><kbd><span class="option">-p <var>&lt;processes&gt;</var></span></kbd></dt>
+<dd><p>Number of processes, passed by multi script</p>
+</dd>
+<dt><kbd><span class="option">--rc</span></kbd></dt>
+<dd><p>Ensemble forward and reverse complement predictions</p>
+</dd>
+<dt><kbd><span class="option">--shifts</span></kbd></dt>
+<dd><p>Ensemble prediction shifts</p>
+</dd>
+<dt><kbd><span class="option">--span</span></kbd></dt>
+<dd><p>Aggregate entire gene span</p>
+</dd>
+<dt><kbd><span class="option">--stats</span></kbd></dt>
+<dd><p>Comma-separated list of stats to save.</p>
+</dd>
+<dt><kbd><span class="option">-s <var>&lt;del_size&gt;</var></span></kbd></dt>
+<dd><p>Deletion size for ISD</p>
+</dd>
+<dt><kbd><span class="option">--target_genes</span></kbd></dt>
+<dd><p>List of target genes in .tsv format, length must match input bed entries</p>
+</dd>
+<dt><kbd><span class="option">-t <var>&lt;targets_file&gt;</var></span></kbd></dt>
+<dd><p>File specifying target indexes and labels in table format</p>
+</dd>
+<dt><kbd><span class="option">--untransform_old</span></kbd></dt>
+<dd><p>Untransform old models</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_isd_bed.make_del_bedt">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_isd_bed.</span></span><span class="sig-name descname"><span class="pre">make_del_bedt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">del_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_isd_bed.html#make_del_bedt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_isd_bed.make_del_bedt" title="Link to this definition"></a></dt>
+<dd><p>Make a BedTool object for all SNP sequences, where seq_len considers cropping.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_isd_bed.map_delseq_genes">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_isd_bed.</span></span><span class="sig-name descname"><span class="pre">map_delseq_genes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">del_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcriptome</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_stride</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">majority_overlap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intron1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_isd_bed.html#map_delseq_genes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_isd_bed.map_delseq_genes" title="Link to this definition"></a></dt>
+<dd><p>Intersect SNP sequences with gene exons, constructing a list
+mapping sequence indexes to dictionaries of gene_ids to their
+exon-overlapping positions in the sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>snps</strong> (<em>[</em><em>bvcf.SNP</em><em>]</em>) – SNP list.</p></li>
+<li><p><strong>seq_len</strong> (<em>int</em>) – Sequence length, after model cropping.</p></li>
+<li><p><strong>transcriptome</strong> (<a class="reference internal" href="baskerville.html#baskerville.gene.Transcriptome" title="baskerville.gene.Transcriptome"><em>Transcriptome</em></a>) – Transcriptome.</p></li>
+<li><p><strong>model_stride</strong> (<em>int</em>) – Model stride.</p></li>
+<li><p><strong>span</strong> (<em>bool</em>) – If True, use gene span instead of exons.</p></li>
+<li><p><strong>majority_overlap</strong> (<em>bool</em>) – If True, only consider bins for which
+the majority of the space overlaps an exon.</p></li>
+<li><p><strong>intron1</strong> (<em>bool</em>) – If True, include intron bins adjacent to junctions.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_ism_bed">
+<span id="baskerville-scripts-hound-ism-bed-module"></span><h2>baskerville.scripts.hound_ism_bed module<a class="headerlink" href="#module-baskerville.scripts.hound_ism_bed" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_ism_bed.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_ism_bed.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_ism_bed.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_ism_bed.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_ism_snp">
+<span id="baskerville-scripts-hound-ism-snp-module"></span><h2>baskerville.scripts.hound_ism_snp module<a class="headerlink" href="#module-baskerville.scripts.hound_ism_snp" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_ism_snp.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_ism_snp.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_ism_snp.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_ism_snp.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_predbed">
+<span id="baskerville-scripts-hound-predbed-module"></span><h2>baskerville.scripts.hound_predbed module<a class="headerlink" href="#module-baskerville.scripts.hound_predbed" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_predbed.bigwig_open">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_predbed.</span></span><span class="sig-name descname"><span class="pre">bigwig_open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bw_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genome_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_predbed.html#bigwig_open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_predbed.bigwig_open" title="Link to this definition"></a></dt>
+<dd><p>Open the bigwig file for writing and write the header.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_predbed.bigwig_write">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_predbed.</span></span><span class="sig-name descname"><span class="pre">bigwig_write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bw_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genome_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_crop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_predbed.html#bigwig_write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_predbed.bigwig_write" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Write a signal track to a BigWig file over the region</dt><dd><p>specified by seqs_coords.</p>
+</dd>
+<dt>Args</dt><dd><p>signal:      Sequences x Length signal array
+seq_coords:  (chr,start,end)
+bw_file:     BigWig filename
+genome_file: Chromosome lengths file
+seq_crop:    Sequence length cropped from each side of the sequence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_predbed.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_predbed.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_predbed.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_predbed.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_predvcf">
+<span id="baskerville-scripts-hound-predvcf-module"></span><h2>baskerville.scripts.hound_predvcf module<a class="headerlink" href="#module-baskerville.scripts.hound_predvcf" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_predvcf.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_predvcf.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_predvcf.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_predvcf.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_snp">
+<span id="baskerville-scripts-hound-snp-module"></span><h2>baskerville.scripts.hound_snp module<a class="headerlink" href="#module-baskerville.scripts.hound_snp" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_snp.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_snp.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_snp.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_snp.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="baskerville-scripts-hound-snp-slurm-module">
+<h2>baskerville.scripts.hound_snp_slurm module<a class="headerlink" href="#baskerville-scripts-hound-snp-slurm-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-baskerville.scripts.hound_snpgene">
+<span id="baskerville-scripts-hound-snpgene-module"></span><h2>baskerville.scripts.hound_snpgene module<a class="headerlink" href="#module-baskerville.scripts.hound_snpgene" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_snpgene.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_snpgene.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_snpgene.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_snpgene.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_train">
+<span id="baskerville-scripts-hound-train-module"></span><h2>baskerville.scripts.hound_train module<a class="headerlink" href="#module-baskerville.scripts.hound_train" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_train.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_train.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_train.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_train.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts.hound_transfer">
+<span id="baskerville-scripts-hound-transfer-module"></span><h2>baskerville.scripts.hound_transfer module<a class="headerlink" href="#module-baskerville.scripts.hound_transfer" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.scripts.hound_transfer.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.scripts.hound_transfer.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/scripts/hound_transfer.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.scripts.hound_transfer.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.scripts">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-baskerville.scripts" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="baskerville.helpers.html" class="btn btn-neutral float-left" title="baskerville.helpers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

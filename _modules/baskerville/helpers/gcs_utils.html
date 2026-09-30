@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.helpers.gcs_utils &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.helpers.gcs_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.helpers.gcs_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># taken and modified from calico-ukbb-mri-ml repo</span>
+<span class="c1"># https://github.com/calico/calicolabs-ukbb-mri-ml/tree/main/src/ukbb_mri_ml/helpers</span>
+<span class="c1"># =========================================================================</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">base64</span><span class="w"> </span><span class="kn">import</span> <span class="n">b64decode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">os.path</span><span class="w"> </span><span class="kn">import</span> <span class="n">exists</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">isfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">re</span><span class="w"> </span><span class="kn">import</span> <span class="n">match</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.storage</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.auth.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultCredentialsError</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_storage_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Client</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Returns: Google Cloud Storage Client</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Attempt to infer credentials from environment</span>
+        <span class="n">storage_client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Inferred credentials from environment"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">DefaultCredentialsError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Attempt to load JSON credentials from GOOGLE_APPLICATION_CREDENTIALS</span>
+            <span class="n">storage_client</span> <span class="o">=</span> <span class="n">Client</span><span class="o">.</span><span class="n">from_service_account_info</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"GOOGLE_APPLICATION_CREDENTIALS"</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loaded credentials from GOOGLE_APPLICATION_CREDENTIALS"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># Attempt to load JSON credentials from base64 encoded string</span>
+            <span class="n">storage_client</span> <span class="o">=</span> <span class="n">Client</span><span class="o">.</span><span class="n">from_service_account_info</span><span class="p">(</span>
+                <span class="n">loads</span><span class="p">(</span>
+                    <span class="n">b64decode</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"GOOGLE_APPLICATION_CREDENTIALS"</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+                        <span class="s2">"utf-8"</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Loaded credentials from base64 encoded string"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">storage_client</span>
+
+
+<div class="viewcode-block" id="download_from_gcs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.download_from_gcs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_from_gcs</span><span class="p">(</span><span class="n">gcs_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">local_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Downloads a file from GCS</span>
+<span class="sd">    Args:</span>
+<span class="sd">        gcs_path: string path to GCS file to download</span>
+<span class="sd">        local_path: string path to download to</span>
+<span class="sd">        bytes: boolean flag indicating if gcs file contains bytes</span>
+
+<span class="sd">    Returns: None</span>
+
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="n">write_mode</span> <span class="o">=</span> <span class="s2">"wb"</span> <span class="k">if</span> <span class="nb">bytes</span> <span class="k">else</span> <span class="s2">"w"</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">local_path</span><span class="p">,</span> <span class="n">write_mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">o</span><span class="p">:</span>
+        <span class="n">storage_client</span><span class="o">.</span><span class="n">download_blob_to_file</span><span class="p">(</span><span class="n">gcs_path</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="download_folder_from_gcs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.download_folder_from_gcs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_folder_from_gcs</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">local_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Downloads a whole folder from GCS</span>
+<span class="sd">    Args:</span>
+<span class="sd">        gcs_dir: string path to GCS folder to download</span>
+<span class="sd">        local_dir: string path to download to</span>
+<span class="sd">        bytes: boolean flag indicating if gcs file contains bytes</span>
+
+<span class="sd">    Returns: None</span>
+
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_gcs_path</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"gcs_dir is not a valid GCS path: </span><span class="si">{</span><span class="n">gcs_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">bucket_name</span><span class="p">,</span> <span class="n">gcs_object_prefix</span> <span class="o">=</span> <span class="n">split_gcs_uri</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">)</span>
+    <span class="c1"># Get the bucket from the client.</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+
+    <span class="c1"># Ensure local folder exists</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">local_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">local_dir</span><span class="p">)</span>
+    <span class="c1"># List all blobs with the given prefix (i.e., folder path).</span>
+    <span class="n">blobs</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">list_blobs</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">gcs_object_prefix</span><span class="p">)</span>
+    <span class="c1"># Download each blob.</span>
+    <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="n">blobs</span><span class="p">:</span>
+        <span class="c1"># Compute the full path to which we'll download the blob.</span>
+        <span class="n">blob_rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">gcs_object_prefix</span><span class="p">)</span>
+        <span class="n">local_blob_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">local_dir</span><span class="p">,</span> <span class="n">blob_rel_path</span><span class="p">)</span>
+
+        <span class="c1"># Ensure the local directory structure exists</span>
+        <span class="n">local_blob_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">local_blob_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">local_blob_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">local_blob_dir</span><span class="p">)</span>
+        <span class="n">download_from_gcs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">,</span> <span class="n">blob_rel_path</span><span class="p">),</span> <span class="n">local_blob_path</span><span class="p">,</span> <span class="nb">bytes</span><span class="o">=</span><span class="nb">bytes</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sync_dir_to_gcs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.sync_dir_to_gcs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sync_dir_to_gcs</span><span class="p">(</span>
+    <span class="n">local_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gcs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Copies all files in a local directory to the gcs directory</span>
+<span class="sd">    Args:</span>
+<span class="sd">        local_dir: string local directory path to upload from</span>
+<span class="sd">        gcs_dir: string GCS destination path. Will create folders that do not exist.</span>
+<span class="sd">        verbose: boolean flag to print logging statements</span>
+<span class="sd">        recursive: boolean flag to recursively upload files in subdirectories</span>
+
+<span class="sd">    Returns: None</span>
+
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_gcs_path</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"gcs_dir is not a valid GCS path: </span><span class="si">{</span><span class="n">gcs_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">(</span><span class="n">local_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"local_dir does not exist: </span><span class="si">{</span><span class="n">local_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">local_files</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">local_dir</span><span class="p">)</span>
+    <span class="n">bucket_name</span><span class="p">,</span> <span class="n">gcs_object_prefix</span> <span class="o">=</span> <span class="n">split_gcs_uri</span><span class="p">(</span><span class="n">gcs_dir</span><span class="p">)</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">local_files</span><span class="p">:</span>
+        <span class="n">gcs_object_name</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">gcs_object_prefix</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">local_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">local_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">recursive</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">isfile</span><span class="p">(</span><span class="n">local_file</span><span class="p">):</span>
+            <span class="n">sync_dir_to_gcs</span><span class="p">(</span>
+                <span class="n">local_file</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"gs://</span><span class="si">{</span><span class="n">join</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">,</span><span class="w"> </span><span class="n">gcs_object_name</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">isfile</span><span class="p">(</span><span class="n">local_file</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">gcs_object_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Uploading </span><span class="si">{</span><span class="n">local_file</span><span class="si">}</span><span class="s2"> to gs://</span><span class="si">{</span><span class="n">join</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">,</span><span class="w"> </span><span class="n">gcs_object_name</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="n">blob</span><span class="o">.</span><span class="n">upload_from_filename</span><span class="p">(</span><span class="n">local_file</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="upload_folder_gcs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.upload_folder_gcs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">upload_folder_gcs</span><span class="p">(</span><span class="n">local_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gcs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Copies all files in a local directory to the gcs directory</span>
+<span class="sd">    Args:</span>
+<span class="sd">        local_dir: string local directory path to upload from</span>
+<span class="sd">        gcs_dir: string GCS destination path. Will create folders that do not exist.</span>
+<span class="sd">    Returns: None</span>
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="n">bucket_name</span> <span class="o">=</span> <span class="n">gcs_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">gcs_object_prefix</span> <span class="o">=</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gcs_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">local_prefix</span> <span class="o">=</span> <span class="n">local_dir</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">local_dir</span><span class="p">):</span>
+        <span class="n">gcs_object_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">gcs_object_prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">local_prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">local_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">local_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">gcs_object_name</span><span class="p">)</span>
+        <span class="n">blob</span><span class="o">.</span><span class="n">upload_from_filename</span><span class="p">(</span><span class="n">local_file</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="upload_file_gcs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.upload_file_gcs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">upload_file_gcs</span><span class="p">(</span><span class="n">local_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gcs_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Upload a file to gcs</span>
+<span class="sd">    Args:</span>
+<span class="sd">        local_path: local path to file</span>
+<span class="sd">        gcs_path: string GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME</span>
+
+<span class="sd">    Returns: None</span>
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="n">bucket_name</span> <span class="o">=</span> <span class="n">gcs_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span>
+    <span class="n">gcs_object_prefix</span> <span class="o">=</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gcs_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"//"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">local_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">gcs_object_prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">blob</span><span class="o">.</span><span class="n">upload_from_filename</span><span class="p">(</span><span class="n">local_path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="gcs_join">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.gcs_join">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gcs_join</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"gs://"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">"gs://"</span> <span class="o">+</span> <span class="n">join</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="split_gcs_uri">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.split_gcs_uri">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_gcs_uri</span><span class="p">(</span><span class="n">gcs_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Splits a GCS bucket and object_name from a GCS URI</span>
+<span class="sd">    Args:</span>
+<span class="sd">        gcs_uri: string GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME</span>
+
+<span class="sd">    Returns: bucket_name, object_name</span>
+<span class="sd">    """</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="n">match</span><span class="p">(</span><span class="s2">"gs://(.*?)/(.*)"</span><span class="p">,</span> <span class="n">gcs_uri</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">matches</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">gcs_uri</span><span class="si">}</span><span class="s2"> does not match expected format: gs://BUCKET_NAME/OBJECT_NAME"</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="is_gcs_path">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.is_gcs_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_gcs_path</span><span class="p">(</span><span class="n">gcs_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Returns True if the string passed starts with gs://</span>
+<span class="sd">    Args:</span>
+<span class="sd">        gcs_path: string path to check</span>
+
+<span class="sd">    Returns: Boolean flag indicating the gcs_path starts with gs://</span>
+
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">gcs_path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gs://"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_filename_in_dir">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.get_filename_in_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_filename_in_dir</span><span class="p">(</span><span class="n">files_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Returns list of filenames inside a directory.</span>
+<span class="sd">    """</span>
+    <span class="c1"># currently only Niftidataset receives gs bucket paths, so this isn't necessary</span>
+    <span class="c1"># commenting out for now even though it is functional (lots of files)</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">is_gcs_path</span><span class="p">(</span><span class="n">files_dir</span><span class="p">):</span>
+        <span class="n">bucket_name</span><span class="p">,</span> <span class="n">object_name</span> <span class="o">=</span> <span class="n">split_gcs_uri</span><span class="p">(</span><span class="n">files_dir</span><span class="p">)</span>
+        <span class="n">blob_iterator</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">list_blobs</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">object_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">blob</span><span class="p">)</span> <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="n">blob_iterator</span><span class="p">]</span>
+    <span class="n">dir_contents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">files_dir</span><span class="p">)</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">dir_contents</span><span class="p">:</span>
+        <span class="n">entry_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">files_dir</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">isfile</span><span class="p">(</span><span class="n">entry_path</span><span class="p">):</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">recursive</span><span class="p">:</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">get_filename_in_dir</span><span class="p">(</span><span class="n">entry_path</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Nothing happened here"</span><span class="p">)</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+
+<div class="viewcode-block" id="download_rename_inputs">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.download_rename_inputs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_rename_inputs</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">is_dir</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Download file from gcs to local dir</span>
+<span class="sd">    Args:</span>
+<span class="sd">        filepath: GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME</span>
+<span class="sd">        temp_dir: local dir to download to</span>
+<span class="sd">        is_dir: boolean flag indicating if the filepath is a directory</span>
+<span class="sd">    Returns: new filepath in the local machine</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">is_dir</span><span class="p">:</span>
+        <span class="n">dir_name</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">download_folder_from_gcs</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">dir_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">dir_name</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">split_gcs_uri</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"/"</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">download_from_gcs</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">temp_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="gcs_file_exist">
+<a class="viewcode-back" href="../../../baskerville.helpers.html#baskerville.helpers.gcs_utils.gcs_file_exist">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gcs_file_exist</span><span class="p">(</span><span class="n">gcs_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    check if a file exist in gcs</span>
+<span class="sd">    params: gcs_path</span>
+<span class="sd">    returns: true/false</span>
+<span class="sd">    """</span>
+    <span class="n">storage_client</span> <span class="o">=</span> <span class="n">_get_storage_client</span><span class="p">()</span>
+    <span class="n">bucket</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">split_gcs_uri</span><span class="p">(</span><span class="n">gcs_path</span><span class="p">)</span>
+    <span class="n">bucket</span> <span class="o">=</span> <span class="n">storage_client</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket</span><span class="p">)</span>
+    <span class="n">blob</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

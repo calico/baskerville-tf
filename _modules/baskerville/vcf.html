@@ -1,0 +1,862 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.vcf &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.vcf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.vcf</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2017 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dna</span>
+
+<span class="sd">"""</span>
+<span class="sd">vcf.py</span>
+
+<span class="sd">Methods and classes to support .vcf SNP analysis.</span>
+<span class="sd">"""</span>
+
+
+<div class="viewcode-block" id="cap_allele">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.cap_allele">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cap_allele</span><span class="p">(</span><span class="n">allele</span><span class="p">,</span> <span class="n">cap</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Cap the length of an allele in the figures."""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">allele</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">cap</span><span class="p">:</span>
+        <span class="n">allele</span> <span class="o">=</span> <span class="n">allele</span><span class="p">[:</span><span class="n">cap</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"*"</span>
+    <span class="k">return</span> <span class="n">allele</span></div>
+
+
+
+<div class="viewcode-block" id="intersect_seqs_snps">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.intersect_seqs_snps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">intersect_seqs_snps</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="n">seqs</span><span class="p">,</span> <span class="n">vision_p</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Intersect a VCF file with a list of sequence coordinates.</span>
+
+<span class="sd">    In</span>
+<span class="sd">     vcf_file:</span>
+<span class="sd">     seqs: list of objects w/ chrom, start, end</span>
+<span class="sd">     vision_p: proportion of sequences visible to center genes.</span>
+
+<span class="sd">    Out</span>
+<span class="sd">     seqs_snps: list of list mapping segment indexes to overlapping SNP indexes</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># print segments to BED</span>
+    <span class="c1"># hash segments to indexes</span>
+    <span class="n">seq_temp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
+    <span class="n">seq_bed_file</span> <span class="o">=</span> <span class="n">seq_temp</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">seq_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">seq_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="n">seq_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">)):</span>
+        <span class="n">sstart</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">chrom</span><span class="p">,</span> <span class="n">sstart</span><span class="p">,</span> <span class="n">seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">end</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">seq_bed_out</span><span class="p">)</span>
+        <span class="n">seq_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">chrom</span><span class="p">,</span> <span class="n">sstart</span><span class="p">,</span> <span class="n">seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">seq_indexes</span><span class="p">[</span><span class="n">seq_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="n">seq_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># hash SNPs to indexes</span>
+    <span class="n">snp_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">vcf_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"#"</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">snp_id</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">snp_id</span> <span class="ow">in</span> <span class="n">snp_indexes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Duplicate SNP id </span><span class="si">%s</span><span class="s2"> will break the script"</span> <span class="o">%</span> <span class="n">snp_id</span><span class="p">)</span>
+        <span class="n">snp_indexes</span><span class="p">[</span><span class="n">snp_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+        <span class="n">si</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="n">vcf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># initialize list of lists</span>
+    <span class="n">seqs_snps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">)):</span>
+        <span class="n">seqs_snps</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+    <span class="c1"># intersect</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="s2">"bedtools intersect -wo -a </span><span class="si">%s</span><span class="s2"> -b </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="n">seq_bed_file</span><span class="p">),</span>
+        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"UTF-8"</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">snp_id</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">seq_chrom</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">seq_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">seq_chrom</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span>
+
+        <span class="n">vision_buffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">seq_end</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">vision_p</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">vision_buffer</span> <span class="o">&lt;</span> <span class="n">pos</span> <span class="o">&lt;</span> <span class="n">seq_end</span> <span class="o">-</span> <span class="n">vision_buffer</span><span class="p">:</span>
+            <span class="n">seqs_snps</span><span class="p">[</span><span class="n">seq_indexes</span><span class="p">[</span><span class="n">seq_key</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp_indexes</span><span class="p">[</span><span class="n">snp_id</span><span class="p">])</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">seqs_snps</span></div>
+
+
+
+<div class="viewcode-block" id="intersect_snps_seqs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.intersect_snps_seqs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">intersect_snps_seqs</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="n">seq_coords</span><span class="p">,</span> <span class="n">vision_p</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Intersect a VCF file with a list of sequence coordinates.</span>
+
+<span class="sd">    In</span>
+<span class="sd">     vcf_file:</span>
+<span class="sd">     seq_coords: list of sequence coordinates</span>
+<span class="sd">     vision_p: proportion of sequences visible to center genes.</span>
+
+<span class="sd">    Out</span>
+<span class="sd">     snp_segs: list of list mapping SNP indexes to overlapping sequence indexes</span>
+<span class="sd">    """</span>
+    <span class="c1"># print segments to BED</span>
+    <span class="c1"># hash segments to indexes</span>
+    <span class="n">seg_temp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
+    <span class="n">seg_bed_file</span> <span class="o">=</span> <span class="n">seg_temp</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">seg_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">seg_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="n">segment_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seq_coords</span><span class="p">)):</span>
+        <span class="n">segment_indexes</span><span class="p">[</span><span class="n">seq_coords</span><span class="p">[</span><span class="n">si</span><span class="p">]]</span> <span class="o">=</span> <span class="n">si</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seq_coords</span><span class="p">[</span><span class="n">si</span><span class="p">],</span> <span class="n">file</span><span class="o">=</span><span class="n">seg_bed_out</span><span class="p">)</span>
+
+    <span class="n">seg_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># hash SNPs to indexes</span>
+    <span class="n">snp_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">vcf_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"#"</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">snp_id</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">snp_id</span> <span class="ow">in</span> <span class="n">snp_indexes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Duplicate SNP id </span><span class="si">%s</span><span class="s2"> will break the script"</span> <span class="o">%</span> <span class="n">snp_id</span><span class="p">)</span>
+        <span class="n">snp_indexes</span><span class="p">[</span><span class="n">snp_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+        <span class="n">si</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="n">vcf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># initialize list of lists</span>
+    <span class="n">snp_segs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">snp_indexes</span><span class="p">)):</span>
+        <span class="n">snp_segs</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+    <span class="c1"># intersect</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="s2">"bedtools intersect -wo -a </span><span class="si">%s</span><span class="s2"> -b </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="n">seg_bed_file</span><span class="p">),</span>
+        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"UTF-8"</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">snp_id</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">seg_chrom</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">seg_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">seg_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">seg_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">seg_chrom</span><span class="p">,</span> <span class="n">seg_start</span><span class="p">,</span> <span class="n">seg_end</span><span class="p">)</span>
+
+        <span class="n">vision_buffer</span> <span class="o">=</span> <span class="p">(</span><span class="n">seg_end</span> <span class="o">-</span> <span class="n">seg_start</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">vision_p</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">seg_start</span> <span class="o">+</span> <span class="n">vision_buffer</span> <span class="o">&lt;</span> <span class="n">pos</span> <span class="o">&lt;</span> <span class="n">seg_end</span> <span class="o">-</span> <span class="n">vision_buffer</span><span class="p">:</span>
+            <span class="n">snp_segs</span><span class="p">[</span><span class="n">snp_indexes</span><span class="p">[</span><span class="n">snp_id</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">segment_indexes</span><span class="p">[</span><span class="n">seg_key</span><span class="p">])</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">snp_segs</span></div>
+
+
+
+<div class="viewcode-block" id="snp_seq1">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.snp_seq1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">snp_seq1</span><span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">genome_open</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Produce one hot coded sequences for a SNP.</span>
+
+<span class="sd">    Attrs:</span>
+<span class="sd">        snp [SNP] :</span>
+<span class="sd">        seq_len (int) : sequence length to code</span>
+<span class="sd">        genome_open (File) : open genome FASTA file</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">        seq_vecs_list [array] : list of one hot coded sequences surrounding the</span>
+<span class="sd">        SNP</span>
+<span class="sd">    """</span>
+    <span class="n">left_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">right_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="c1"># initialize one hot coded vector list</span>
+    <span class="n">seq_vecs_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># specify positions in GFF-style 1-based</span>
+    <span class="n">seq_start</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="n">left_len</span>
+    <span class="n">seq_end</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">right_len</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span> <span class="o">-</span> <span class="n">snp</span><span class="o">.</span><span class="n">longest_alt</span><span class="p">())</span>
+
+    <span class="c1"># extract sequence as BED style</span>
+    <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">)</span> <span class="o">+</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="c1"># extend to full length</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">:</span>
+        <span class="n">seq</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span>
+
+    <span class="c1"># verify that ref allele matches ref sequence</span>
+    <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)]</span>
+    <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">seq_ref</span> <span class="o">!=</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">:</span>
+        <span class="c1"># search for reference allele in alternatives</span>
+        <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># for each alternative allele</span>
+        <span class="k">for</span> <span class="n">alt_al</span> <span class="ow">in</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">:</span>
+            <span class="c1"># grab reference sequence matching alt length</span>
+            <span class="n">seq_ref_alt</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">seq_ref_alt</span> <span class="o">==</span> <span class="n">alt_al</span><span class="p">:</span>
+                <span class="c1"># found it!</span>
+                <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="c1"># warn user</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"WARNING: </span><span class="si">%s</span><span class="s2"> - alt (as opposed to ref) allele matches reference genome; changing reference genome to match."</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># remove alt allele and include ref allele</span>
+                <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[:</span><span class="n">left_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span> <span class="o">+</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)</span> <span class="p">:]</span>
+                <span class="k">break</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ref_found</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">"WARNING: </span><span class="si">%s</span><span class="s2"> - reference genome does not match any allele"</span> <span class="o">%</span> <span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># one hot code ref allele</span>
+        <span class="n">seq_vecs_ref</span><span class="p">,</span> <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+        <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_ref</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">alt_al</span> <span class="ow">in</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">:</span>
+            <span class="c1"># remove ref allele and include alt allele</span>
+            <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[:</span><span class="n">left_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">alt_al</span> <span class="o">+</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span> <span class="p">:]</span>
+
+            <span class="c1"># one hot code</span>
+            <span class="n">seq_vecs_alt</span><span class="p">,</span> <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_alt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">seq_vecs_list</span></div>
+
+
+
+<div class="viewcode-block" id="snps_seq1">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.snps_seq1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">snps_seq1</span><span class="p">(</span><span class="n">snps</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">genome_fasta</span><span class="p">,</span> <span class="n">return_seqs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Produce an array of one hot coded sequences for a list of SNPs.</span>
+
+<span class="sd">    Attrs:</span>
+<span class="sd">        snps [SNP] : list of SNPs</span>
+<span class="sd">        seq_len (int) : sequence length to code</span>
+<span class="sd">        genome_fasta (str) : genome FASTA file</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">        seq_vecs (array) : one hot coded sequences surrounding the SNPs</span>
+<span class="sd">        seq_headers [str] : headers for sequences</span>
+<span class="sd">        seq_snps [SNP] : list of used SNPs</span>
+<span class="sd">    """</span>
+    <span class="n">left_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">right_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="c1"># initialize one hot coded vector list</span>
+    <span class="n">seq_vecs_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># save successful SNPs</span>
+    <span class="n">seq_snps</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># save sequence strings, too</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># name sequences</span>
+    <span class="n">seq_headers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># open genome FASTA</span>
+    <span class="n">genome_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">genome_fasta</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">:</span>
+        <span class="c1"># specify positions in GFF-style 1-based</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="n">left_len</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">right_len</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span> <span class="o">-</span> <span class="n">snp</span><span class="o">.</span><span class="n">longest_alt</span><span class="p">())</span>
+
+        <span class="c1"># extract sequence as BED style</span>
+        <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">)</span> <span class="o">+</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># extend to full length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">:</span>
+            <span class="n">seq</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span>
+
+        <span class="c1"># verify that ref allele matches ref sequence</span>
+        <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)]</span>
+        <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">seq_ref</span> <span class="o">!=</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">:</span>
+            <span class="c1"># search for reference allele in alternatives</span>
+            <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># for each alternative allele</span>
+            <span class="k">for</span> <span class="n">alt_al</span> <span class="ow">in</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">:</span>
+                <span class="c1"># grab reference sequence matching alt length</span>
+                <span class="n">seq_ref_alt</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">seq_ref_alt</span> <span class="o">==</span> <span class="n">alt_al</span><span class="p">:</span>
+                    <span class="c1"># found it!</span>
+                    <span class="n">ref_found</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="c1"># warn user</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="s2">"WARNING: </span><span class="si">%s</span><span class="s2"> - alt (as opposed to ref) allele matches reference genome; changing reference genome to match."</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">),</span>
+                        <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># remove alt allele and include ref allele</span>
+                    <span class="n">seq</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">seq</span><span class="p">[:</span><span class="n">left_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span> <span class="o">+</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)</span> <span class="p">:]</span>
+                    <span class="p">)</span>
+                    <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ref_found</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"WARNING: </span><span class="si">%s</span><span class="s2"> - reference genome </span><span class="si">%s</span><span class="s2"> does not match any allele; skipping"</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">seq_ref</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">),</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="n">seq_snps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span>
+
+        <span class="c1"># one hot code ref allele</span>
+        <span class="n">seq_vecs_ref</span><span class="p">,</span> <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+        <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_ref</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+            <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_ref</span><span class="p">)</span>
+
+        <span class="c1"># name ref allele</span>
+        <span class="n">seq_headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">cap_allele</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)))</span>
+
+        <span class="k">for</span> <span class="n">alt_al</span> <span class="ow">in</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">:</span>
+            <span class="c1"># remove ref allele and include alt allele</span>
+            <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[:</span><span class="n">left_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">alt_al</span> <span class="o">+</span> <span class="n">seq</span><span class="p">[</span><span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span> <span class="p">:]</span>
+
+            <span class="c1"># one hot code</span>
+            <span class="n">seq_vecs_alt</span><span class="p">,</span> <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+            <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_alt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+                <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">)</span>  <span class="c1"># not using right now</span>
+
+            <span class="c1"># name</span>
+            <span class="n">seq_headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">cap_allele</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)))</span>
+
+    <span class="c1"># convert to array</span>
+    <span class="n">seq_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seq_vecs_list</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">seq_vecs</span><span class="p">,</span> <span class="n">seq_headers</span><span class="p">,</span> <span class="n">seq_snps</span><span class="p">,</span> <span class="n">seqs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">seq_vecs</span><span class="p">,</span> <span class="n">seq_headers</span><span class="p">,</span> <span class="n">seq_snps</span></div>
+
+
+
+<div class="viewcode-block" id="snps2_seq1">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.snps2_seq1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">snps2_seq1</span><span class="p">(</span><span class="n">snps</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">genome1_fasta</span><span class="p">,</span> <span class="n">genome2_fasta</span><span class="p">,</span> <span class="n">return_seqs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Produce an array of one hot coded sequences for a list of SNPs.</span>
+
+<span class="sd">    Attrs:</span>
+<span class="sd">        snps [SNP] : list of SNPs</span>
+<span class="sd">        seq_len (int) : sequence length to code</span>
+<span class="sd">        genome_fasta (str) : major allele genome FASTA file</span>
+<span class="sd">        genome2_fasta (str) : minor allele genome FASTA file</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">        seq_vecs (array) : one hot coded sequences surrounding the SNPs</span>
+<span class="sd">        seq_headers [str] : headers for sequences</span>
+<span class="sd">        seq_snps [SNP] : list of used SNPs</span>
+<span class="sd">    """</span>
+    <span class="n">left_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">right_len</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="c1"># open genome FASTA</span>
+    <span class="n">genome1</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">genome1_fasta</span><span class="p">)</span>
+    <span class="n">genome2</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">genome2_fasta</span><span class="p">)</span>
+
+    <span class="c1"># initialize one hot coded vector list</span>
+    <span class="n">seq_vecs_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># save successful SNPs</span>
+    <span class="n">seq_snps</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># save sequence strings, too</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># name sequences</span>
+    <span class="n">seq_headers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">snp</span> <span class="ow">in</span> <span class="n">snps</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">"Major/minor genome mode requires only two alleles: </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">snp</span><span class="o">.</span><span class="n">rsid</span>
+            <span class="p">)</span>
+
+        <span class="n">alt_al</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># specify positions in GFF-style 1-based</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="n">left_len</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos</span> <span class="o">+</span> <span class="n">right_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span>
+
+        <span class="c1"># extract sequence as BED style</span>
+        <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">seq_ref</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">)</span> <span class="o">+</span> <span class="n">genome1</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">genome1</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># extend to full length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_ref</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_end</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">:</span>
+            <span class="n">seq_ref</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_end</span> <span class="o">-</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_ref</span><span class="p">))</span>
+
+        <span class="c1"># verify that ref allele matches ref sequence</span>
+        <span class="n">seq_ref_snp</span> <span class="o">=</span> <span class="n">seq_ref</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">seq_ref_snp</span> <span class="o">!=</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">"WARNING: Major allele SNP </span><span class="si">%s</span><span class="s2"> doesnt match reference genome: </span><span class="si">%s</span><span class="s2"> vs </span><span class="si">%s</span><span class="s2">"</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">,</span> <span class="n">seq_ref_snp</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># specify positions in GFF-style 1-based</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos2</span> <span class="o">-</span> <span class="n">left_len</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">snp</span><span class="o">.</span><span class="n">pos2</span> <span class="o">+</span> <span class="n">right_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)</span>
+
+        <span class="c1"># extract sequence as BED style</span>
+        <span class="k">if</span> <span class="n">seq_start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">seq_alt</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">seq_start</span><span class="p">)</span> <span class="o">+</span> <span class="n">genome2</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">genome2</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="c1"># extend to full length</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_end</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">:</span>
+            <span class="n">seq_alt</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_end</span> <span class="o">-</span> <span class="n">seq_start</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">))</span>
+
+        <span class="c1"># verify that ref allele matches ref sequence</span>
+        <span class="n">seq_alt_snp</span> <span class="o">=</span> <span class="n">seq_alt</span><span class="p">[</span><span class="n">left_len</span> <span class="p">:</span> <span class="n">left_len</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">seq_alt_snp</span> <span class="o">!=</span> <span class="n">alt_al</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s2">"WARNING: Minor allele SNP </span><span class="si">%s</span><span class="s2"> doesnt match reference genome: </span><span class="si">%s</span><span class="s2"> vs </span><span class="si">%s</span><span class="s2">"</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">snp</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">seq_alt_snp</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">seq_snps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snp</span><span class="p">)</span>
+
+        <span class="c1"># one hot code ref allele</span>
+        <span class="n">seq_vecs_ref</span><span class="p">,</span> <span class="n">seq_ref</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq_ref</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+        <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_ref</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+            <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_ref</span><span class="p">)</span>
+
+        <span class="c1"># name ref allele</span>
+        <span class="n">seq_headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">cap_allele</span><span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)))</span>
+
+        <span class="c1"># one hot code alt allele</span>
+        <span class="n">seq_vecs_alt</span><span class="p">,</span> <span class="n">seq_alt</span> <span class="o">=</span> <span class="n">dna_length_1hot</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+        <span class="n">seq_vecs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_vecs_alt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+            <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_alt</span><span class="p">)</span>
+
+        <span class="c1"># name</span>
+        <span class="n">seq_headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">snp</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span> <span class="n">cap_allele</span><span class="p">(</span><span class="n">alt_al</span><span class="p">)))</span>
+
+    <span class="c1"># convert to array</span>
+    <span class="n">seq_vecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seq_vecs_list</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_seqs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">seq_vecs</span><span class="p">,</span> <span class="n">seq_headers</span><span class="p">,</span> <span class="n">seq_snps</span><span class="p">,</span> <span class="n">seqs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">seq_vecs</span><span class="p">,</span> <span class="n">seq_headers</span><span class="p">,</span> <span class="n">seq_snps</span></div>
+
+
+
+<div class="viewcode-block" id="dna_length_1hot">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.dna_length_1hot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dna_length_1hot</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Adjust the sequence length and compute</span>
+<span class="sd">    a 1hot coding."""</span>
+
+    <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+        <span class="c1"># trim the sequence</span>
+        <span class="n">seq_trim</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">-</span> <span class="n">length</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">seq_trim</span> <span class="p">:</span> <span class="n">seq_trim</span> <span class="o">+</span> <span class="n">length</span><span class="p">]</span>
+
+    <span class="k">elif</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+        <span class="c1"># extend with N's</span>
+        <span class="n">nfront</span> <span class="o">=</span> <span class="p">(</span><span class="n">length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">nback</span> <span class="o">=</span> <span class="n">length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">-</span> <span class="n">nfront</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="n">nfront</span> <span class="o">+</span> <span class="n">seq</span> <span class="o">+</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="n">nback</span>
+
+    <span class="c1"># n_uniform required to avoid different</span>
+    <span class="c1">#   random nucleotides for each allele</span>
+    <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">dna_1hot</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">n_uniform</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">seq_1hot</span><span class="p">,</span> <span class="n">seq</span></div>
+
+
+
+<div class="viewcode-block" id="vcf_count">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.vcf_count">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">vcf_count</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Count SNPs in a VCF file"""</span>
+    <span class="k">if</span> <span class="n">vcf_file</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">".gz"</span><span class="p">:</span>
+        <span class="n">vcf_in</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="s2">"rt"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">vcf_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+
+    <span class="c1"># read through header</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"#"</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="c1"># count SNPs</span>
+    <span class="n">num_snps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">num_snps</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="n">vcf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">num_snps</span></div>
+
+
+
+<div class="viewcode-block" id="vcf_snps">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.vcf_snps">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">vcf_snps</span><span class="p">(</span>
+    <span class="n">vcf_file</span><span class="p">,</span>
+    <span class="n">require_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">validate_ref_fasta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">flip_ref</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">pos2</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">start_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">end_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Load SNPs from a VCF file"""</span>
+    <span class="k">if</span> <span class="n">vcf_file</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">".gz"</span><span class="p">:</span>
+        <span class="n">vcf_in</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="s2">"rt"</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">vcf_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">)</span>
+
+    <span class="c1"># read through header</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"#"</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="c1"># to check sorted</span>
+    <span class="k">if</span> <span class="n">require_sorted</span><span class="p">:</span>
+        <span class="n">seen_chrs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">prev_chr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">prev_pos</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># to check reference</span>
+    <span class="k">if</span> <span class="n">validate_ref_fasta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">genome_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">validate_ref_fasta</span><span class="p">)</span>
+
+    <span class="c1"># read in SNPs</span>
+    <span class="n">snps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">si</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">line</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start_i</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">start_i</span> <span class="o">&lt;=</span> <span class="n">si</span> <span class="o">&lt;</span> <span class="n">end_i</span><span class="p">:</span>
+            <span class="n">snps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SNP</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">pos2</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">require_sorted</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">prev_chr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># same chromosome</span>
+                    <span class="k">if</span> <span class="n">prev_chr</span> <span class="o">==</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">prev_pos</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span>
+                                <span class="s2">"Sorted VCF required. Mis-ordered position: </span><span class="si">%s</span><span class="s2">"</span>
+                                <span class="o">%</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+                                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span> <span class="ow">in</span> <span class="n">seen_chrs</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="s2">"Sorted VCF required. Mis-ordered chromosome: </span><span class="si">%s</span><span class="s2">"</span>
+                            <span class="o">%</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+                            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">seen_chrs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">)</span>
+                <span class="n">prev_chr</span> <span class="o">=</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span>
+                <span class="n">prev_pos</span> <span class="o">=</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span>
+
+            <span class="k">if</span> <span class="n">validate_ref_fasta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ref_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span>
+                <span class="n">snp_pos</span> <span class="o">=</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pos</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">ref_snp</span> <span class="o">=</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+                    <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">snp_pos</span><span class="p">,</span> <span class="n">snp_pos</span> <span class="o">+</span> <span class="n">ref_n</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ref_allele</span> <span class="o">!=</span> <span class="n">ref_snp</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">flip_ref</span><span class="p">:</span>
+                        <span class="c1"># bail</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="s2">"ERROR: </span><span class="si">%s</span><span class="s2"> does not match reference </span><span class="si">%s</span><span class="s2">"</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">ref_snp</span><span class="p">),</span>
+                            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">alt_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="n">ref_snp</span> <span class="o">=</span> <span class="n">genome_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+                            <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">snp_pos</span><span class="p">,</span> <span class="n">snp_pos</span> <span class="o">+</span> <span class="n">alt_n</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+                        <span class="c1"># if alt matches fasta reference</span>
+                        <span class="k">if</span> <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">ref_snp</span><span class="p">:</span>
+                            <span class="c1"># flip alleles</span>
+                            <span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">flip_alleles</span><span class="p">()</span>
+
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># bail</span>
+                            <span class="nb">print</span><span class="p">(</span>
+                                <span class="s2">"ERROR: </span><span class="si">%s</span><span class="s2"> does not match reference </span><span class="si">%s</span><span class="s2">"</span>
+                                <span class="o">%</span> <span class="p">(</span><span class="n">snps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">ref_snp</span><span class="p">),</span>
+                                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">si</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">vcf_in</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="n">vcf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">snps</span></div>
+
+
+
+<div class="viewcode-block" id="vcf_sort">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.vcf_sort">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">vcf_sort</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">):</span>
+    <span class="c1"># move</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">.tmp"</span> <span class="o">%</span> <span class="n">vcf_file</span><span class="p">)</span>
+
+    <span class="c1"># print header</span>
+    <span class="n">vcf_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"##fileformat=VCFv4.0"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">vcf_out</span><span class="p">)</span>
+    <span class="n">vcf_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># sort</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="s2">"bedtools sort -i </span><span class="si">%s</span><span class="s2">.tmp &gt;&gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">vcf_file</span><span class="p">,</span> <span class="n">vcf_file</span><span class="p">),</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># clean</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">.tmp"</span> <span class="o">%</span> <span class="n">vcf_file</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="SNP">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.SNP">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SNP</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""SNP</span>
+
+<span class="sd">    Represent SNPs read in from a VCF file</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        vcf_line (str)</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vcf_line</span><span class="p">,</span> <span class="n">pos2</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">vcf_line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="c1"># self.chr = a[0]</span>
+        <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"chr"</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chr</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chr</span> <span class="o">=</span> <span class="s2">"chr</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rsid</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alt_allele</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flipped</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rsid</span> <span class="o">==</span> <span class="s2">"."</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rsid</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos2</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">pos2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+
+<div class="viewcode-block" id="SNP.flip_alleles">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.SNP.flip_alleles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flip_alleles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Flip reference and first alt allele."""</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alt_allele</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flipped</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="SNP.get_alleles">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.SNP.get_alleles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alleles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return a list of all alleles"""</span>
+        <span class="n">alleles</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span>
+        <span class="k">return</span> <span class="n">alleles</span></div>
+
+
+<div class="viewcode-block" id="SNP.indel_size">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.SNP.indel_size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">indel_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the size of the indel."""</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alt_allele</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SNP.longest_alt">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.vcf.SNP.longest_alt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">longest_alt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return the longest alt allele."""</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">al</span><span class="p">)</span> <span class="k">for</span> <span class="n">al</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">])</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"SNP(</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">)"</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rsid</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ref_allele</span><span class="p">,</span>
+            <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alt_alleles</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

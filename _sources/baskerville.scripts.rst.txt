@@ -1,0 +1,149 @@
+baskerville.scripts package
+===========================
+
+Submodules
+----------
+
+baskerville.scripts.hound\_data module
+--------------------------------------
+
+.. automodule:: baskerville.scripts.hound_data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_data\_align module
+---------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_data_align
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_data\_read module
+--------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_data_read
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_data\_write module
+---------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_data_write
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_eval module
+--------------------------------------
+
+.. automodule:: baskerville.scripts.hound_eval
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_eval\_genes module
+---------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_eval_genes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_eval\_spec module
+--------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_eval_spec
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_isd\_bed module
+------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_isd_bed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_ism\_bed module
+------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_ism_bed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_ism\_snp module
+------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_ism_snp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_predbed module
+-----------------------------------------
+
+.. automodule:: baskerville.scripts.hound_predbed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_predvcf module
+-----------------------------------------
+
+.. automodule:: baskerville.scripts.hound_predvcf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_snp module
+-------------------------------------
+
+.. automodule:: baskerville.scripts.hound_snp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_snp\_slurm module
+--------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_snp_slurm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_snpgene module
+-----------------------------------------
+
+.. automodule:: baskerville.scripts.hound_snpgene
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_train module
+---------------------------------------
+
+.. automodule:: baskerville.scripts.hound_train
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+baskerville.scripts.hound\_transfer module
+------------------------------------------
+
+.. automodule:: baskerville.scripts.hound_transfer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: baskerville.scripts
+   :members:
+   :undoc-members:
+   :show-inheritance:

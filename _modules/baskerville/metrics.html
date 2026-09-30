@@ -1,0 +1,687 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.metrics &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.metrics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.metrics</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow.python.keras</span><span class="w"> </span><span class="kn">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow.python.keras.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">losses_utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow.python.keras.losses</span><span class="w"> </span><span class="kn">import</span> <span class="n">LossFunctionWrapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tensorflow.python.keras.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">metrics_utils</span>
+
+<span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s2">"GPU"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">gpu_devices</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">set_memory_growth</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># Losses</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="mean_squared_error_udot">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.mean_squared_error_udot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mean_squared_error_udot</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">udot_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mean squared error with mean-normalized specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        udot_weight: Weight of the mean-normalized specificity term.</span>
+<span class="sd">    """</span>
+    <span class="n">mse_term</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
+    <span class="n">yn_true</span> <span class="o">=</span> <span class="n">y_true</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">yn_pred</span> <span class="o">=</span> <span class="n">y_pred</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">udot_term</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">yn_true</span> <span class="o">*</span> <span class="n">yn_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mse_term</span> <span class="o">+</span> <span class="n">udot_weight</span> <span class="o">*</span> <span class="n">udot_term</span></div>
+
+
+
+<div class="viewcode-block" id="MeanSquaredErrorUDot">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.MeanSquaredErrorUDot">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MeanSquaredErrorUDot</span><span class="p">(</span><span class="n">LossFunctionWrapper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mean squared error with mean-normalized specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        udot_weight: Weight of the mean-normalized specificity term.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">udot_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="o">=</span><span class="n">losses_utils</span><span class="o">.</span><span class="n">ReductionV2</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mse_udot"</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">udot_weight</span> <span class="o">=</span> <span class="n">udot_weight</span>
+        <span class="n">mse_udot</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">:</span> <span class="n">mean_squared_error_udot</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">udot_weight</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MeanSquaredErrorUDot</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">mse_udot</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="poisson_kl">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.poisson_kl">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_kl</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">kl_weight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Poisson decomposition with KL specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kl_weight (float): Weight of the KL specificity term.</span>
+<span class="sd">        epsilon (float): Added small value to avoid log(0).</span>
+<span class="sd">    """</span>
+    <span class="c1"># poisson loss</span>
+    <span class="n">poisson_term</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
+    <span class="c1"># add epsilon to protect against all tiny values</span>
+    <span class="n">y_true</span> <span class="o">+=</span> <span class="n">epsilon</span>
+    <span class="n">y_pred</span> <span class="o">+=</span> <span class="n">epsilon</span>
+
+    <span class="c1"># normalize to sum to one</span>
+    <span class="n">yn_true</span> <span class="o">=</span> <span class="n">y_true</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">yn_pred</span> <span class="o">=</span> <span class="n">y_pred</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># kl term</span>
+    <span class="n">kl_term</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">kl_divergence</span><span class="p">(</span><span class="n">yn_true</span><span class="p">,</span> <span class="n">yn_pred</span><span class="p">)</span>
+
+    <span class="c1"># weighted combination</span>
+    <span class="k">return</span> <span class="n">poisson_term</span> <span class="o">+</span> <span class="n">kl_weight</span> <span class="o">*</span> <span class="n">kl_term</span></div>
+
+
+
+<div class="viewcode-block" id="PoissonKL">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PoissonKL">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PoissonKL</span><span class="p">(</span><span class="n">LossFunctionWrapper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Possion decomposition with KL specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      kl_weight (float): Weight of the KL specificity term.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kl_weight</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="o">=</span><span class="n">losses_utils</span><span class="o">.</span><span class="n">ReductionV2</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"poisson_kl"</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kl_weight</span> <span class="o">=</span> <span class="n">kl_weight</span>
+        <span class="n">pois_kl</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">:</span> <span class="n">poisson_kl</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kl_weight</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PoissonKL</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">pois_kl</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="poisson">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.poisson">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Poisson loss, without mean reduction."""</span>
+    <span class="k">return</span> <span class="n">yp</span> <span class="o">-</span> <span class="n">yt</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">yp</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="poisson_multinomial">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.poisson_multinomial">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_multinomial</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">,</span>
+    <span class="n">y_pred</span><span class="p">,</span>
+    <span class="n">total_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">weight_range</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">weight_exp</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">rescale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Possion decomposition with multinomial specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        total_weight (float): Weight of the Poisson total term.</span>
+<span class="sd">        epsilon (float): Added small value to avoid log(0).</span>
+<span class="sd">        rescale (bool): Rescale loss after re-weighting.</span>
+<span class="sd">    """</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">y_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">weight_range</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Poisson Multinomial weight_range must be &gt;=1"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">weight_range</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">position_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pos_start</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">seq_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">pos_end</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">pos_start</span><span class="p">,</span> <span class="n">pos_end</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="o">-</span><span class="n">pos_start</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">weight_range</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">weight_exp</span><span class="p">)</span>
+        <span class="n">position_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">positions</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="n">weight_exp</span><span class="p">))</span>
+        <span class="n">position_weights</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">position_weights</span><span class="p">)</span>
+        <span class="n">position_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">position_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">position_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">position_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">position_weights</span><span class="p">)</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">position_weights</span><span class="p">)</span>
+
+    <span class="c1"># sum across lengths</span>
+    <span class="n">s_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># B x T</span>
+    <span class="n">s_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># B x T</span>
+
+    <span class="c1"># total count poisson loss, mean across targets</span>
+    <span class="n">poisson_term</span> <span class="o">=</span> <span class="n">poisson</span><span class="p">(</span><span class="n">s_true</span><span class="p">,</span> <span class="n">s_pred</span><span class="p">)</span>  <span class="c1"># B x T</span>
+    <span class="n">poisson_term</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">position_weights</span><span class="p">)</span>
+
+    <span class="c1"># add epsilon to protect against tiny values</span>
+    <span class="n">y_true</span> <span class="o">+=</span> <span class="n">epsilon</span>
+    <span class="n">y_pred</span> <span class="o">+=</span> <span class="n">epsilon</span>
+
+    <span class="c1"># normalize to sum to one</span>
+    <span class="n">p_pred</span> <span class="o">=</span> <span class="n">y_pred</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">s_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># B x L x T</span>
+
+    <span class="c1"># multinomial loss</span>
+    <span class="n">pl_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_pred</span><span class="p">)</span>  <span class="c1"># B x L x T</span>
+    <span class="n">multinomial_dot</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">pl_pred</span><span class="p">)</span>  <span class="c1"># B x L x T</span>
+    <span class="n">multinomial_term</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">multinomial_dot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># B x T</span>
+    <span class="n">multinomial_term</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">position_weights</span><span class="p">)</span>
+
+    <span class="c1"># normalize to scale of 1:1 term ratio</span>
+    <span class="n">loss_raw</span> <span class="o">=</span> <span class="n">multinomial_term</span> <span class="o">+</span> <span class="n">total_weight</span> <span class="o">*</span> <span class="n">poisson_term</span>  <span class="c1"># B x T</span>
+    <span class="k">if</span> <span class="n">rescale</span><span class="p">:</span>
+        <span class="n">loss_rescale</span> <span class="o">=</span> <span class="n">loss_raw</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">total_weight</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">loss_rescale</span> <span class="o">=</span> <span class="n">loss_raw</span>
+
+    <span class="k">return</span> <span class="n">loss_rescale</span></div>
+
+
+
+<div class="viewcode-block" id="PoissonMultinomial">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PoissonMultinomial">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PoissonMultinomial</span><span class="p">(</span><span class="n">LossFunctionWrapper</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Possion decomposition with multinomial specificity term.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      total_weight (float): Weight of the Poisson total term.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">total_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">weight_range</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">weight_exp</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="o">=</span><span class="n">losses_utils</span><span class="o">.</span><span class="n">ReductionV2</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"poisson_multinomial"</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">pois_mn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">:</span> <span class="n">poisson_multinomial</span><span class="p">(</span>
+            <span class="n">yt</span><span class="p">,</span> <span class="n">yp</span><span class="p">,</span> <span class="n">total_weight</span><span class="p">,</span> <span class="n">weight_range</span><span class="p">,</span> <span class="n">weight_exp</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PoissonMultinomial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">pois_mn</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># Metrics</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="SeqAUC">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.SeqAUC">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SeqAUC</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""AUC metric for multi-task sequence data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      curve (str): Metric type--'ROC' or 'PR'.</span>
+<span class="sd">      summarize (bool): Whether to summarize over all tasks.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">curve</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"ROC"</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">summarize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">curve</span> <span class="o">==</span> <span class="s2">"ROC"</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s2">"auroc"</span>
+            <span class="k">elif</span> <span class="n">curve</span> <span class="o">==</span> <span class="s2">"PR"</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s2">"auprc"</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SeqAUC</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">curve</span><span class="o">=</span><span class="n">curve</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">multi_label</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span> <span class="o">=</span> <span class="n">summarize</span>
+
+<div class="viewcode-block" id="SeqAUC.update_state">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.SeqAUC.update_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Flatten sequence length before update."""</span>
+
+        <span class="c1"># flatten batch and sequence length</span>
+        <span class="n">num_targets</span> <span class="o">=</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">))</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">))</span>
+
+        <span class="c1"># update</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SeqAUC</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update_state</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SeqAUC.interpolate_pr_auc">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.SeqAUC.interpolate_pr_auc">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolate_pr_auc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Add option to remove summary."""</span>
+        <span class="n">dtp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_positives</span><span class="p">)</span>
+        <span class="n">dp</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">prec_slope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="n">dtp</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"prec_slope"</span><span class="p">)</span>
+        <span class="n">intercept</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">prec_slope</span><span class="p">,</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="n">safe_p_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">p</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+                <span class="n">p</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">"recall_relative_ratio"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span>
+        <span class="p">)</span>
+
+        <span class="n">pr_auc_increment</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+            <span class="n">prec_slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">dtp</span> <span class="o">+</span> <span class="n">intercept</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">safe_p_ratio</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"pr_auc_increment"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_label</span><span class="p">:</span>
+            <span class="n">by_label_auc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                <span class="n">pr_auc_increment</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">"_by_label"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Evenly weighted average of the label AUCs.</span>
+                    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">by_label_auc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Weighted average of the label AUCs.</span>
+                    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">by_label_auc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span><span class="p">)),</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span><span class="p">),</span>
+                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">by_label_auc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">pr_auc_increment</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"interpolate_pr_auc"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pr_auc_increment</span></div>
+
+
+<div class="viewcode-block" id="SeqAUC.result">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.SeqAUC.result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Add option to remove summary.</span>
+<span class="sd">        It's not clear why, but these metrics_utils == aren't working for tf2.6 on.</span>
+<span class="sd">        I'm hacking a solution to compare the values instead."""</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">curve</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">AUCCurve</span><span class="o">.</span><span class="n">PR</span><span class="o">.</span><span class="n">value</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">summation_method</span><span class="o">.</span><span class="n">value</span>
+            <span class="o">==</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">AUCSummationMethod</span><span class="o">.</span><span class="n">INTERPOLATION</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">):</span>
+            <span class="c1"># This use case is different and is handled separately.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpolate_pr_auc</span><span class="p">()</span>
+
+        <span class="c1"># Set `x` and `y` values for the curves based on `curve` config.</span>
+        <span class="n">recall</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curve</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">AUCCurve</span><span class="o">.</span><span class="n">ROC</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="n">fp_rate</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">false_positives</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">false_positives</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">true_negatives</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">fp_rate</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">recall</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># curve == 'PR'.</span>
+            <span class="n">precision</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">true_positives</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_positives</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">recall</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">precision</span>
+
+        <span class="c1"># Find the rectangle heights based on `summation_method`.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summation_method</span><span class="o">.</span><span class="n">value</span>
+            <span class="o">==</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">AUCSummationMethod</span><span class="o">.</span><span class="n">INTERPOLATION</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">):</span>
+            <span class="c1"># Note: the case ('PR', 'interpolation') has been handled above.</span>
+            <span class="n">heights</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">summation_method</span><span class="o">.</span><span class="n">value</span>
+            <span class="o">==</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">AUCSummationMethod</span><span class="o">.</span><span class="n">MINORING</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">):</span>
+            <span class="n">heights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">y</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># self.summation_method = metrics_utils.AUCSummationMethod.MAJORING:</span>
+            <span class="n">heights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">y</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="c1"># Sum up the areas of all the rectangles.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_label</span><span class="p">:</span>
+            <span class="n">riemann_terms</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">heights</span><span class="p">)</span>
+            <span class="n">by_label_auc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                <span class="n">riemann_terms</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">"_by_label"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Unweighted average of the label AUCs.</span>
+                    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">by_label_auc</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Weighted average of the label AUCs.</span>
+                    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">div_no_nan</span><span class="p">(</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">by_label_auc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span><span class="p">)),</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_weights</span><span class="p">),</span>
+                        <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">by_label_auc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">heights</span><span class="p">),</span>
+                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_thresholds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">heights</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PearsonR">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PearsonR">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PearsonR</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""PearsonR metric for multi-task data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      num_targets (int): Number of tasks.</span>
+<span class="sd">      summarize (bool): Whether to summarize over all tasks.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"pearsonr"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PearsonR</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span> <span class="o">=</span> <span class="n">summarize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_targets</span><span class="p">,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"product"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"true_sum"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"true_sumsq"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"pred_sum"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"pred_sumsq"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PearsonR.update_state">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PearsonR.update_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Update metric state for a batch."""</span>
+        <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="s2">"float32"</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">reduce_axes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reduce_axes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">product</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">product</span><span class="p">)</span>
+
+        <span class="n">true_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_sum</span><span class="p">)</span>
+
+        <span class="n">true_sumsq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">y_true</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_sumsq</span><span class="p">)</span>
+
+        <span class="n">pred_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sum</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">pred_sum</span><span class="p">)</span>
+
+        <span class="n">pred_sumsq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">y_pred</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">pred_sumsq</span><span class="p">)</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">count</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PearsonR.result">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PearsonR.result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute PearsonR result from state."""</span>
+        <span class="n">true_mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">)</span>
+        <span class="n">true_mean2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">true_mean</span><span class="p">)</span>
+        <span class="n">pred_mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pred_sum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">)</span>
+        <span class="n">pred_mean2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">pred_mean</span><span class="p">)</span>
+
+        <span class="n">term1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product</span>
+        <span class="n">term2</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">true_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sum</span><span class="p">)</span>
+        <span class="n">term3</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">pred_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span><span class="p">)</span>
+        <span class="n">term4</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">true_mean</span><span class="p">,</span> <span class="n">pred_mean</span><span class="p">))</span>
+        <span class="n">covariance</span> <span class="o">=</span> <span class="n">term1</span> <span class="o">+</span> <span class="n">term2</span> <span class="o">+</span> <span class="n">term3</span> <span class="o">+</span> <span class="n">term4</span>
+
+        <span class="n">true_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">,</span> <span class="n">true_mean2</span><span class="p">)</span>
+        <span class="n">pred_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">,</span> <span class="n">pred_mean2</span><span class="p">)</span>
+        <span class="n">pred_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">pred_var</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">),</span> <span class="n">pred_var</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">pred_var</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">tp_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">true_var</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pred_var</span><span class="p">))</span>
+        <span class="n">correlation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">covariance</span><span class="p">,</span> <span class="n">tp_var</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">correlation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">correlation</span></div>
+
+
+<div class="viewcode-block" id="PearsonR.reset_state">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.PearsonR.reset_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Reset metric state."""</span>
+        <span class="n">K</span><span class="o">.</span><span class="n">batch_set_value</span><span class="p">([(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">])</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="R2">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.R2">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">R2</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Metric</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""R2 metric for multi-task data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      num_targets (int): Number of tasks.</span>
+<span class="sd">      summarize (bool): Whether to summarize over all tasks.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"r2"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">R2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span> <span class="o">=</span> <span class="n">summarize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_targets</span><span class="p">,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"count"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"true_sum"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"true_sumsq"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"product"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"pred_sumsq"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="s2">"zeros"</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="R2.update_state">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.R2.update_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Update metric state for a batch."""</span>
+        <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="s2">"float32"</span><span class="p">)</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">reduce_axes</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reduce_axes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">true_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_sum</span><span class="p">)</span>
+
+        <span class="n">true_sumsq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">y_true</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_sumsq</span><span class="p">)</span>
+
+        <span class="n">product</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_product</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">product</span><span class="p">)</span>
+
+        <span class="n">pred_sumsq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">y_pred</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">pred_sumsq</span><span class="p">)</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">reduce_axes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">count</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="R2.result">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.R2.result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compute R2 result from state."""</span>
+        <span class="n">true_mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_true_sum</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">)</span>
+        <span class="n">true_mean2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">true_mean</span><span class="p">)</span>
+
+        <span class="n">total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_count</span><span class="p">,</span> <span class="n">true_mean2</span><span class="p">)</span>
+
+        <span class="n">resid1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred_sumsq</span>
+        <span class="n">resid2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_product</span>
+        <span class="n">resid3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_true_sumsq</span>
+        <span class="n">resid</span> <span class="o">=</span> <span class="n">resid1</span> <span class="o">+</span> <span class="n">resid2</span> <span class="o">+</span> <span class="n">resid3</span>
+
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">resid</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summarize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r2</span></div>
+
+
+<div class="viewcode-block" id="R2.reset_state">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.metrics.R2.reset_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Reset metric state."""</span>
+        <span class="n">K</span><span class="o">.</span><span class="n">batch_set_value</span><span class="p">([(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">])</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

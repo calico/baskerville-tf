@@ -1,0 +1,398 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.scripts.hound_data_write &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.scripts.hound_data_write</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.scripts.hound_data_write</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Copyright 2019 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">optparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionParser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">dna</span>
+
+<span class="sd">"""</span>
+<span class="sd">basenji_data_write.py</span>
+
+<span class="sd">Write TF Records for batches of model sequences.</span>
+<span class="sd">"""</span>
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># main</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">usage</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">"usage: %prog [options] &lt;fasta_file&gt; &lt;seqs_bed_file&gt; &lt;seqs_cov_dir&gt; &lt;tfr_file&gt;"</span>
+    <span class="p">)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-d"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"decimals"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Round values to given decimals [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-s"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"start_i"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sequence start index [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-e"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"end_i"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sequence end index [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--te"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"target_extend"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Extend targets vector [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">"-u"</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_npy"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Unmappable array numpy file"</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--umap_clip"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_clip"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Clip values at unmappable positions to distribution quantiles, eg 0.25. [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--umap_tfr"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_tfr"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Save umap array into TFRecords [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-x"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"extend_bp"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Extend sequences on each side [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"Must provide input arguments."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fasta_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">seqs_bed_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">seqs_cov_dir</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">tfr_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># read model sequences</span>
+
+    <span class="n">model_seqs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">model_seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ModelSeq</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">end_i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">end_i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_seqs</span><span class="p">)</span>
+
+    <span class="n">num_seqs</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">end_i</span> <span class="o">-</span> <span class="n">options</span><span class="o">.</span><span class="n">start_i</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># determine sequence coverage files</span>
+
+    <span class="n">seqs_cov_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ti</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">seqs_cov_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/</span><span class="si">%d</span><span class="s2">.h5"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs_cov_dir</span><span class="p">,</span> <span class="n">ti</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">seqs_cov_file</span><span class="p">):</span>
+        <span class="n">seqs_cov_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seqs_cov_file</span><span class="p">)</span>
+        <span class="n">ti</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">seqs_cov_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/</span><span class="si">%d</span><span class="s2">.h5"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs_cov_dir</span><span class="p">,</span> <span class="n">ti</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs_cov_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">"Sequence coverage files not found, e.g. </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_cov_file</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">seq_pool_len</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">seqs_cov_files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">"r"</span><span class="p">)[</span><span class="s2">"targets"</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">num_targets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seqs_cov_files</span><span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># read targets</span>
+
+    <span class="c1"># initialize targets</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_seqs</span><span class="p">,</span> <span class="n">seq_pool_len</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">)</span>
+
+    <span class="c1"># read each target</span>
+    <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_targets</span><span class="p">):</span>
+        <span class="n">seqs_cov_open</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">seqs_cov_files</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span> <span class="s2">"r"</span><span class="p">)</span>
+        <span class="n">targets</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">seqs_cov_open</span><span class="p">[</span><span class="s2">"targets"</span><span class="p">][</span><span class="n">options</span><span class="o">.</span><span class="n">start_i</span> <span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">end_i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">seqs_cov_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># modify unmappable</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_npy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_clip</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">unmap_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">umap_npy</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_seqs</span><span class="p">):</span>
+            <span class="n">msi</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">start_i</span> <span class="o">+</span> <span class="n">si</span>
+
+            <span class="c1"># determine unmappable null value</span>
+            <span class="n">seq_target_null</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span>
+                <span class="n">targets</span><span class="p">[</span><span class="n">si</span><span class="p">],</span> <span class="n">q</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_clip</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># set unmappable positions to null</span>
+            <span class="n">targets</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">unmap_mask</span><span class="p">[</span><span class="n">msi</span><span class="p">,</span> <span class="p">:],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+                <span class="n">targets</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">unmap_mask</span><span class="p">[</span><span class="n">msi</span><span class="p">,</span> <span class="p">:],</span> <span class="p">:],</span> <span class="n">seq_target_null</span>
+            <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_npy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_tfr</span><span class="p">:</span>
+        <span class="n">unmap_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">umap_npy</span><span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># write TFRecords</span>
+
+    <span class="c1"># open FASTA</span>
+    <span class="n">fasta_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+
+    <span class="c1"># define options</span>
+    <span class="n">tf_opts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">TFRecordOptions</span><span class="p">(</span><span class="n">compression_type</span><span class="o">=</span><span class="s2">"ZLIB"</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">TFRecordWriter</span><span class="p">(</span><span class="n">tfr_file</span><span class="p">,</span> <span class="n">tf_opts</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_seqs</span><span class="p">):</span>
+            <span class="n">msi</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">start_i</span> <span class="o">+</span> <span class="n">si</span>
+            <span class="n">mseq</span> <span class="o">=</span> <span class="n">model_seqs</span><span class="p">[</span><span class="n">msi</span><span class="p">]</span>
+            <span class="n">mseq_start</span> <span class="o">=</span> <span class="n">mseq</span><span class="o">.</span><span class="n">start</span> <span class="o">-</span> <span class="n">options</span><span class="o">.</span><span class="n">extend_bp</span>
+            <span class="n">mseq_end</span> <span class="o">=</span> <span class="n">mseq</span><span class="o">.</span><span class="n">end</span> <span class="o">+</span> <span class="n">options</span><span class="o">.</span><span class="n">extend_bp</span>
+
+            <span class="c1"># read FASTA</span>
+            <span class="n">seq_dna</span> <span class="o">=</span> <span class="n">fetch_dna</span><span class="p">(</span><span class="n">fasta_open</span><span class="p">,</span> <span class="n">mseq</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">mseq_start</span><span class="p">,</span> <span class="n">mseq_end</span><span class="p">)</span>
+
+            <span class="c1"># one hot code (N's as zero)</span>
+            <span class="c1"># seq_1hot = dna.dna_1hot(seq_dna, n_uniform=False, n_sample=False)</span>
+            <span class="n">seq_1hot</span> <span class="o">=</span> <span class="n">dna</span><span class="o">.</span><span class="n">dna_1hot_index</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span>  <span class="c1"># more efficient</span>
+
+            <span class="c1"># truncate decimals (which aids compression)</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">decimals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">targets_si</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">targets_si</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">targets_si</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">decimals</span><span class="p">)</span>
+                <span class="n">targets_si</span> <span class="o">=</span> <span class="n">targets_si</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+                <span class="c1"># targets_si = rround(targets[si], decimals=options.decimals)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">targets_si</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">si</span><span class="p">]</span>
+
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">targets_si</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span>
+
+            <span class="c1"># hash to bytes</span>
+            <span class="n">features_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"sequence"</span><span class="p">:</span> <span class="n">feature_bytes</span><span class="p">(</span><span class="n">seq_1hot</span><span class="p">),</span>
+                <span class="s2">"target"</span><span class="p">:</span> <span class="n">feature_bytes</span><span class="p">(</span><span class="n">targets_si</span><span class="p">),</span>
+            <span class="p">}</span>
+
+            <span class="c1"># add unmappability</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_tfr</span><span class="p">:</span>
+                <span class="n">features_dict</span><span class="p">[</span><span class="s2">"umap"</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_bytes</span><span class="p">(</span><span class="n">unmap_mask</span><span class="p">[</span><span class="n">msi</span><span class="p">,</span> <span class="p">:])</span>
+
+            <span class="c1"># write example</span>
+            <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">(</span>
+                <span class="n">features</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Features</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">features_dict</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
+
+        <span class="n">fasta_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="tround">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.tround">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tround</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">decimals</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Truncate to the specified number of decimals."""</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">true_divide</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="n">decimals</span><span class="p">),</span> <span class="mi">10</span><span class="o">**</span><span class="n">decimals</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rround">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.rround">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rround</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">decimals</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Round to the specified number of decimals, randomly sampling</span>
+<span class="sd">    the last digit according to a bernoulli RV."""</span>
+    <span class="n">a_dtype</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+    <span class="n">dec_probs</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">tround</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">decimals</span><span class="p">))</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="n">decimals</span>
+    <span class="n">dec_bin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">dec_probs</span><span class="p">)</span>
+    <span class="n">a_dec</span> <span class="o">=</span> <span class="n">tround</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">decimals</span><span class="p">)</span> <span class="o">+</span> <span class="n">dec_bin</span> <span class="o">/</span> <span class="mi">10</span><span class="o">**</span><span class="n">decimals</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">a_dec</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">a_dtype</span><span class="p">),</span> <span class="n">decimals</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fetch_dna">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.fetch_dna">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_dna</span><span class="p">(</span><span class="n">fasta_open</span><span class="p">,</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Fetch DNA when start/end may reach beyond chromosomes."""</span>
+
+    <span class="c1"># initialize sequence</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">""</span>
+
+    <span class="c1"># add N's for left over reach</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">seq_dna</span> <span class="o">=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># get dna</span>
+    <span class="n">seq_dna</span> <span class="o">+=</span> <span class="n">fasta_open</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+    <span class="c1"># add N's for right over reach</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">:</span>
+        <span class="n">seq_dna</span> <span class="o">+=</span> <span class="s2">"N"</span> <span class="o">*</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_dna</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">seq_dna</span></div>
+
+
+
+<div class="viewcode-block" id="feature_bytes">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.feature_bytes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">feature_bytes</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert numpy arrays to bytes features."""</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">bytes_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">BytesList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span><span class="n">values</span><span class="p">]))</span></div>
+
+
+
+<div class="viewcode-block" id="feature_floats">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_write.feature_floats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">feature_floats</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Convert numpy arrays to floats features.</span>
+<span class="sd">    Requires more space than bytes for float16"""</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">float_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">FloatList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">values</span><span class="p">))</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># __main__</span>
+<span class="c1">################################################################################</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

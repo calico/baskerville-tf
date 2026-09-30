@@ -1,0 +1,1030 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.scripts.hound_data &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.scripts.hound_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.scripts.hound_data</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Copyright 2017 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">optparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionParser</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">slurm</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="sd">"""</span>
+<span class="sd">hound_data.py</span>
+
+<span class="sd">Compute model sequences from the genome, extracting DNA coverage values.</span>
+<span class="sd">"""</span>
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">usage</span> <span class="o">=</span> <span class="s2">"usage: %prog [options] &lt;fasta_file&gt; &lt;targets_file&gt;"</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-b"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"blacklist_bed"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Set blacklist nucleotides to a baseline value."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--break"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"break_t"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">786432</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Break in half contigs above length [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-c"</span><span class="p">,</span>
+        <span class="s2">"--crop"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"crop_bp"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Crop bp off each end [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-d"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"decimals"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Round values to given decimals [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-f"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"folds"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Generate cross fold split [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-g"</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">"gaps_file"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Genome assembly gaps BED [Default: </span><span class="si">%d</span><span class="s2">efault]"</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-i"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"interp_nan"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Interpolate NaNs [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-l"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"seq_length"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">131072</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sequence length [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--limit"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"limit_bed"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Limit to segments that overlap regions in a BED file"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--local"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"run_local"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Run jobs locally as opposed to on SLURM [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-o"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"out_dir"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">"data_out"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Output directory [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-p"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"processes"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Number parallel processes [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--peaks"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"peaks_only"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Create contigs only from peaks [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-r"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"seqs_per_tfr"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sequences per TFRecord file [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--restart"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"restart"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Continue progress from midpoint. [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-s"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"sample_pct"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Down-sample the segments"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--seed"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"seed"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">44</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Random seed [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--snap"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"snap"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Snap sequences to multiple of the given value [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--st"</span><span class="p">,</span>
+        <span class="s2">"--split_test"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"split_test"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Exit after split. [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--stride"</span><span class="p">,</span>
+        <span class="s2">"--stride_train"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"stride_train"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Stride to advance train sequences [Default: seq_length]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--stride_test"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"stride_test"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Stride to advance valid and test sequences [Default: seq_length]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-t"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"test_pct_or_chr"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"str"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Proportion of the data for testing [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">"-u"</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_bed"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Unmappable regions in BED format"</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--umap_t"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_t"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Remove sequences with more than this unmappable bin % [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--umap_clip"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_clip"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Clip values at unmappable positions to distribution quantiles, eg 0.25. [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--umap_tfr"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"umap_tfr"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Save umap array into TFRecords [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-w"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"pool_width"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Sum pool width [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-v"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"valid_pct_or_chr"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"str"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Proportion of the data for validation [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--transform_old"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"transform_old"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Apply old target transforms [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"Must provide FASTA and sample coverage labels and paths."</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fasta_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">targets_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">break_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">break_t</span> <span class="o">&lt;</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">"Maximum contig length --break cannot be less than sequence length."</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># transform proportion strides to base pairs</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"stride_train %.f"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">" converted to </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span><span class="p">)</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">stride_train</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">folds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"stride_test %.f"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">" converted to </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span><span class="p">)</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">stride_test</span><span class="p">))</span>
+
+    <span class="c1"># check snap</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">snap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snap</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"seq_length must be a multiple of snap"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">stride_train</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snap</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"stride_train must be a multiple of snap"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">stride_test</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">snap</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"stride_test must be a multiple of snap"</span><span class="p">)</span>
+
+    <span class="c1"># setup output directory</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"Remove output directory </span><span class="si">%s</span><span class="s2"> or use --restart option."</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">)</span>
+
+    <span class="c1"># read target datasets</span>
+    <span class="n">targets_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">targets_file</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># define genomic contigs</span>
+    <span class="c1">################################################################</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span><span class="p">:</span>
+        <span class="n">chrom_contigs</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">load_chromosomes</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+
+        <span class="c1"># remove gaps</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">gaps_file</span><span class="p">:</span>
+            <span class="n">chrom_contigs</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split_contigs</span><span class="p">(</span><span class="n">chrom_contigs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">gaps_file</span><span class="p">)</span>
+
+        <span class="c1"># ditch the chromosomes for contigs</span>
+        <span class="n">contigs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">chrom_contigs</span><span class="p">:</span>
+            <span class="n">contigs</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">Contig</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">ctg_start</span><span class="p">,</span> <span class="n">ctg_end</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ctg_start</span><span class="p">,</span> <span class="n">ctg_end</span> <span class="ow">in</span> <span class="n">chrom_contigs</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span>
+            <span class="p">]</span>
+
+        <span class="c1"># limit to a BED file</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">limit_bed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="n">limit_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">limit_bed</span><span class="p">)</span>
+
+        <span class="c1"># limit to peaks</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">peaks_only</span><span class="p">:</span>
+            <span class="n">peaks_bed</span> <span class="o">=</span> <span class="n">curate_peaks</span><span class="p">(</span>
+                <span class="n">targets_df</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+            <span class="p">)</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="n">limit_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">peaks_bed</span><span class="p">)</span>
+
+        <span class="c1"># filter for large enough</span>
+        <span class="n">seq_tlength</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+        <span class="n">contigs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctg</span> <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span> <span class="k">if</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="n">seq_tlength</span><span class="p">]</span>
+
+        <span class="c1"># break up large contigs</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">break_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">break_large_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">break_t</span><span class="p">)</span>
+
+        <span class="c1"># print contigs to BED file</span>
+        <span class="c1"># ctg_bed_file = '%s/contigs.bed' % options.out_dir</span>
+        <span class="c1"># write_seqs_bed(ctg_bed_file, contigs)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># divide between train/valid/test</span>
+    <span class="c1">################################################################</span>
+    <span class="c1"># label folds</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">folds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fold_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"fold</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">fi</span> <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">folds</span><span class="p">)]</span>
+        <span class="n">num_folds</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">folds</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fold_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"train"</span><span class="p">,</span> <span class="s2">"valid"</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">]</span>
+        <span class="n">num_folds</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">folds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># divide by fold pct</span>
+            <span class="n">fold_contigs</span> <span class="o">=</span> <span class="n">divide_contigs_folds</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">folds</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># convert to float pct</span>
+                <span class="n">valid_pct</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">valid_pct_or_chr</span><span class="p">)</span>
+                <span class="n">test_pct</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">test_pct_or_chr</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">valid_pct</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+                <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">test_pct</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+
+                <span class="c1"># divide by pct</span>
+                <span class="n">fold_contigs</span> <span class="o">=</span> <span class="n">divide_contigs_pct</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">test_pct</span><span class="p">,</span> <span class="n">valid_pct</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+                <span class="c1"># divide by chr</span>
+                <span class="n">valid_chrs</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">valid_pct_or_chr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
+                <span class="n">test_chrs</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">test_pct_or_chr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
+                <span class="n">fold_contigs</span> <span class="o">=</span> <span class="n">divide_contigs_chr</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">test_chrs</span><span class="p">,</span> <span class="n">valid_chrs</span><span class="p">)</span>
+
+        <span class="c1"># rejoin broken contigs within set</span>
+        <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fold_contigs</span><span class="p">)):</span>
+            <span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rejoin_large_contigs</span><span class="p">(</span><span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">])</span>
+
+        <span class="c1"># write labeled contigs to BED file</span>
+        <span class="n">ctg_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/contigs.bed"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+        <span class="n">ctg_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">ctg_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fold_contigs</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">]:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">fold_labels</span><span class="p">[</span><span class="n">fi</span><span class="p">])</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">ctg_bed_out</span><span class="p">)</span>
+        <span class="n">ctg_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">split_test</span><span class="p">:</span>
+        <span class="n">exit</span><span class="p">()</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># define model sequences</span>
+    <span class="c1">################################################################</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span><span class="p">:</span>
+        <span class="n">fold_mseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_folds</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fold_labels</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"valid"</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">]:</span>
+                <span class="n">stride_fold</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_test</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stride_fold</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">stride_train</span>
+
+            <span class="c1"># stride sequences across contig</span>
+            <span class="n">fold_mseqs_fi</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">contig_sequences</span><span class="p">(</span>
+                <span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">],</span>
+                <span class="n">seq_tlength</span><span class="p">,</span>
+                <span class="n">stride_fold</span><span class="p">,</span>
+                <span class="n">options</span><span class="o">.</span><span class="n">snap</span><span class="p">,</span>
+                <span class="n">fold_labels</span><span class="p">[</span><span class="n">fi</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">fold_mseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fold_mseqs_fi</span><span class="p">)</span>
+
+            <span class="c1"># shuffle</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">])</span>
+
+            <span class="c1"># down-sample</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sample_pct</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+                    <span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">sample_pct</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">]))</span>
+                <span class="p">)</span>
+
+        <span class="c1"># merge into one list</span>
+        <span class="n">mseqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ms</span> <span class="k">for</span> <span class="n">fm</span> <span class="ow">in</span> <span class="n">fold_mseqs</span> <span class="k">for</span> <span class="n">ms</span> <span class="ow">in</span> <span class="n">fm</span><span class="p">]</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># mappability</span>
+    <span class="c1">################################################################</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_bed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="s2">"bedtools"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"Install Bedtools to annotate unmappable sites"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># annotate unmappable positions</span>
+            <span class="n">mseqs_unmap</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">annotate_unmap</span><span class="p">(</span>
+                <span class="n">mseqs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_bed</span><span class="p">,</span> <span class="n">seq_tlength</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span>
+            <span class="p">)</span>
+
+            <span class="c1"># filter unmappable</span>
+            <span class="n">mseqs_map_mask</span> <span class="o">=</span> <span class="n">mseqs_unmap</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float64"</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_t</span>
+            <span class="n">mseqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">mseqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mseqs</span><span class="p">))</span> <span class="k">if</span> <span class="n">mseqs_map_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+            <span class="n">mseqs_unmap</span> <span class="o">=</span> <span class="n">mseqs_unmap</span><span class="p">[</span><span class="n">mseqs_map_mask</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="c1"># write to file</span>
+            <span class="n">unmap_npy</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/mseqs_unmap.npy"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">unmap_npy</span><span class="p">,</span> <span class="n">mseqs_unmap</span><span class="p">)</span>
+
+        <span class="c1"># write sequences to BED</span>
+        <span class="n">seqs_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/sequences.bed"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">write_seqs_bed</span><span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">,</span> <span class="n">mseqs</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># read from directory</span>
+        <span class="n">seqs_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/sequences.bed"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+        <span class="n">unmap_npy</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/mseqs_unmap.npy"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+        <span class="n">mseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fold_mseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_folds</span><span class="p">):</span>
+            <span class="n">fold_mseqs</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ModelSeq</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">mseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"train"</span><span class="p">:</span>
+                <span class="n">fi</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">elif</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"valid"</span><span class="p">:</span>
+                <span class="n">fi</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"test"</span><span class="p">:</span>
+                <span class="n">fi</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fi</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"fold"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+            <span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># read sequence coverage values</span>
+    <span class="c1">################################################################</span>
+    <span class="n">seqs_cov_dir</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/seqs_cov"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">seqs_cov_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">seqs_cov_dir</span><span class="p">)</span>
+
+    <span class="n">read_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">genome_cov_file</span> <span class="o">=</span> <span class="n">targets_df</span><span class="p">[</span><span class="s2">"file"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span>
+        <span class="n">seqs_cov_stem</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs_cov_dir</span><span class="p">,</span> <span class="n">ti</span><span class="p">)</span>
+        <span class="n">seqs_cov_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">.h5"</span> <span class="o">%</span> <span class="n">seqs_cov_stem</span>
+
+        <span class="n">clip_ti</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">"clip"</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">clip_ti</span> <span class="o">=</span> <span class="n">targets_df</span><span class="p">[</span><span class="s2">"clip"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span>
+
+        <span class="n">clipsoft_ti</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s2">"clip_soft"</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">clipsoft_ti</span> <span class="o">=</span> <span class="n">targets_df</span><span class="p">[</span><span class="s2">"clip_soft"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span>
+
+        <span class="n">scale_ti</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="s2">"scale"</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">scale_ti</span> <span class="o">=</span> <span class="n">targets_df</span><span class="p">[</span><span class="s2">"scale"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">seqs_cov_file</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"Skipping existing </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_cov_file</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s2">"hound_data_read.py"</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -w </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -u </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">targets_df</span><span class="p">[</span><span class="s2">"sum_stat"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">clip_ti</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -c </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">clip_ti</span>
+            <span class="k">if</span> <span class="n">clipsoft_ti</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" --clip_soft </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">clipsoft_ti</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -s </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">scale_ti</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">blacklist_bed</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -b </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">blacklist_bed</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">interp_nan</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -i"</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">transform_old</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" --transform_old"</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">genome_cov_file</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_bed_file</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_cov_file</span>
+
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">run_local</span><span class="p">:</span>
+                <span class="c1"># breaks on some OS</span>
+                <span class="c1"># cmd += ' &amp;&gt; %s.err' % seqs_cov_stem</span>
+                <span class="n">read_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">slurm</span><span class="o">.</span><span class="n">Job</span><span class="p">(</span>
+                    <span class="n">cmd</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">"read_t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">ti</span><span class="p">,</span>
+                    <span class="n">out_file</span><span class="o">=</span><span class="s2">"</span><span class="si">%s</span><span class="s2">.out"</span> <span class="o">%</span> <span class="n">seqs_cov_stem</span><span class="p">,</span>
+                    <span class="n">err_file</span><span class="o">=</span><span class="s2">"</span><span class="si">%s</span><span class="s2">.err"</span> <span class="o">%</span> <span class="n">seqs_cov_stem</span><span class="p">,</span>
+                    <span class="n">queue</span><span class="o">=</span><span class="s2">"standard"</span><span class="p">,</span>
+                    <span class="n">mem</span><span class="o">=</span><span class="mi">15000</span><span class="p">,</span>
+                    <span class="n">time</span><span class="o">=</span><span class="s2">"12:0:0"</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">read_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">run_local</span><span class="p">:</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">exec_par</span><span class="p">(</span><span class="n">read_jobs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">slurm</span><span class="o">.</span><span class="n">multi_run</span><span class="p">(</span>
+            <span class="n">read_jobs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">launch_sleep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">update_sleep</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># write TF Records</span>
+    <span class="c1">################################################################</span>
+    <span class="c1"># copy targets file</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">targets_file</span><span class="p">,</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/targets.txt"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">)</span>
+
+    <span class="c1"># initialize TF Records dir</span>
+    <span class="n">tfr_dir</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/tfrecords"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">tfr_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">tfr_dir</span><span class="p">)</span>
+
+    <span class="n">write_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">fold_set</span> <span class="ow">in</span> <span class="n">fold_labels</span><span class="p">:</span>
+        <span class="n">fold_set_indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mseqs</span><span class="p">))</span> <span class="k">if</span> <span class="n">mseqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">fold_set</span><span class="p">]</span>
+        <span class="n">fold_set_start</span> <span class="o">=</span> <span class="n">fold_set_indexes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">fold_set_end</span> <span class="o">=</span> <span class="n">fold_set_indexes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">tfr_i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">tfr_start</span> <span class="o">=</span> <span class="n">fold_set_start</span>
+        <span class="n">tfr_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">tfr_start</span> <span class="o">+</span> <span class="n">options</span><span class="o">.</span><span class="n">seqs_per_tfr</span><span class="p">,</span> <span class="n">fold_set_end</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">tfr_start</span> <span class="o">&lt;=</span> <span class="n">fold_set_end</span><span class="p">:</span>
+            <span class="n">tfr_stem</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">-</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">tfr_dir</span><span class="p">,</span> <span class="n">fold_set</span><span class="p">,</span> <span class="n">tfr_i</span><span class="p">)</span>
+
+            <span class="n">tfr_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">.tfr"</span> <span class="o">%</span> <span class="n">tfr_stem</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">restart</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">tfr_file</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">"Skipping existing </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">tfr_file</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="s2">"hound_data_write.py"</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -s </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">tfr_start</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -e </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">tfr_end</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" --umap_clip </span><span class="si">%f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_clip</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -x </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">decimals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -d </span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">decimals</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_tfr</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" --umap_tfr"</span>
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">umap_bed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" -u </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">unmap_npy</span>
+
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">fasta_file</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_bed_file</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs_cov_dir</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">" </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">tfr_file</span>
+
+                <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">run_local</span><span class="p">:</span>
+                    <span class="c1"># breaks on some OS</span>
+                    <span class="c1"># cmd += ' &amp;&gt; %s.err' % tfr_stem</span>
+                    <span class="n">write_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="n">slurm</span><span class="o">.</span><span class="n">Job</span><span class="p">(</span>
+                        <span class="n">cmd</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">"write_</span><span class="si">%s</span><span class="s2">-</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">fold_set</span><span class="p">,</span> <span class="n">tfr_i</span><span class="p">),</span>
+                        <span class="n">out_file</span><span class="o">=</span><span class="s2">"</span><span class="si">%s</span><span class="s2">.out"</span> <span class="o">%</span> <span class="n">tfr_stem</span><span class="p">,</span>
+                        <span class="n">err_file</span><span class="o">=</span><span class="s2">"</span><span class="si">%s</span><span class="s2">.err"</span> <span class="o">%</span> <span class="n">tfr_stem</span><span class="p">,</span>
+                        <span class="n">queue</span><span class="o">=</span><span class="s2">"standard"</span><span class="p">,</span>
+                        <span class="n">mem</span><span class="o">=</span><span class="mi">15000</span><span class="p">,</span>
+                        <span class="n">time</span><span class="o">=</span><span class="s2">"12:0:0"</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">write_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+            <span class="c1"># update</span>
+            <span class="n">tfr_i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">tfr_start</span> <span class="o">+=</span> <span class="n">options</span><span class="o">.</span><span class="n">seqs_per_tfr</span>
+            <span class="n">tfr_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">tfr_start</span> <span class="o">+</span> <span class="n">options</span><span class="o">.</span><span class="n">seqs_per_tfr</span><span class="p">,</span> <span class="n">fold_set_end</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">run_local</span><span class="p">:</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">exec_par</span><span class="p">(</span><span class="n">write_jobs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">slurm</span><span class="o">.</span><span class="n">multi_run</span><span class="p">(</span>
+            <span class="n">write_jobs</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">processes</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">launch_sleep</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">update_sleep</span><span class="o">=</span><span class="mi">5</span>
+        <span class="p">)</span>
+
+    <span class="c1">################################################################</span>
+    <span class="c1"># stats</span>
+    <span class="c1">################################################################</span>
+    <span class="n">stats_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"num_targets"</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"seq_length"</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"seq_1hot"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"pool_width"</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"crop_bp"</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+
+    <span class="n">target_length</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">seq_length</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+    <span class="n">target_length</span> <span class="o">=</span> <span class="n">target_length</span> <span class="o">//</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span>
+    <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"target_length"</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_length</span>
+
+    <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_folds</span><span class="p">):</span>
+        <span class="n">stats_dict</span><span class="p">[</span><span class="s2">"</span><span class="si">%s</span><span class="s2">_seqs"</span> <span class="o">%</span> <span class="n">fold_labels</span><span class="p">[</span><span class="n">fi</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fold_mseqs</span><span class="p">[</span><span class="n">fi</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="s2">/statistics.json"</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">out_dir</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">stats_json_out</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">stats_dict</span><span class="p">,</span> <span class="n">stats_json_out</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="curate_peaks">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.curate_peaks">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">curate_peaks</span><span class="p">(</span><span class="n">targets_df</span><span class="p">,</span> <span class="n">out_dir</span><span class="p">,</span> <span class="n">pool_width</span><span class="p">,</span> <span class="n">crop_bp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Merge all peaks, round to nearest pool_width, and add cropped bp."""</span>
+
+    <span class="c1"># concatenate and extend peaks</span>
+    <span class="n">cat_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/peaks_cat.bed"</span> <span class="o">%</span> <span class="n">out_dir</span>
+    <span class="n">cat_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">cat_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">bed_file</span> <span class="ow">in</span> <span class="n">targets_df</span><span class="o">.</span><span class="n">file</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">bed_file</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s2">".gz"</span><span class="p">:</span>
+            <span class="n">bed_in</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="s2">"rt"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bed_in</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">bed_in</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+            <span class="c1"># extend to pool width</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="n">pool_width</span><span class="p">:</span>
+                <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">end</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="n">pool_width</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">pool_width</span>
+
+            <span class="c1"># add cropped bp</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span> <span class="o">-</span> <span class="n">crop_bp</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">+=</span> <span class="n">crop_bp</span>
+
+            <span class="c1"># print</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">cat_bed_out</span><span class="p">)</span>
+
+        <span class="n">bed_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">cat_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># merge</span>
+    <span class="n">merge_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/peaks_merge.bed"</span> <span class="o">%</span> <span class="n">out_dir</span>
+    <span class="n">bedtools_cmd</span> <span class="o">=</span> <span class="s2">"bedtools sort -i </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">cat_bed_file</span>
+    <span class="n">bedtools_cmd</span> <span class="o">+=</span> <span class="s2">" | bedtools merge -i - &gt; </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">merge_bed_file</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">bedtools_cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># round and add crop_bp</span>
+    <span class="n">full_bed_file</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="s2">/peaks_full.bed"</span> <span class="o">%</span> <span class="n">out_dir</span>
+    <span class="n">full_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">merge_bed_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">end</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+
+        <span class="c1"># round length to nearest pool_width</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">length</span> <span class="o">/</span> <span class="n">pool_width</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">bins</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="p">(</span><span class="n">bins</span> <span class="o">*</span> <span class="n">pool_width</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="p">(</span><span class="n">bins</span> <span class="o">*</span> <span class="n">pool_width</span><span class="p">)</span>
+
+        <span class="c1"># write</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">full_bed_out</span><span class="p">)</span>
+
+    <span class="n">full_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">full_bed_file</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="divide_contigs_chr">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.divide_contigs_chr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">divide_contigs_chr</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">test_chrs</span><span class="p">,</span> <span class="n">valid_chrs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Divide list of contigs into train/valid/test lists</span>
+<span class="sd">    by chromosome."""</span>
+
+    <span class="c1"># initialize current train/valid/test nucleotides</span>
+    <span class="n">train_nt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">valid_nt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">test_nt</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># initialize train/valid/test contig lists</span>
+    <span class="n">train_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">valid_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">test_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># process contigs</span>
+    <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+        <span class="n">ctg_len</span> <span class="o">=</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span>
+
+        <span class="k">if</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span> <span class="ow">in</span> <span class="n">test_chrs</span><span class="p">:</span>
+            <span class="n">test_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">test_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+        <span class="k">elif</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span> <span class="ow">in</span> <span class="n">valid_chrs</span><span class="p">:</span>
+            <span class="n">valid_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">valid_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">train_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+
+    <span class="n">total_nt</span> <span class="o">=</span> <span class="n">train_nt</span> <span class="o">+</span> <span class="n">valid_nt</span> <span class="o">+</span> <span class="n">test_nt</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Contigs divided into"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Train: </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_contigs</span><span class="p">),</span> <span class="n">train_nt</span><span class="p">,</span> <span class="n">train_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Valid: </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_contigs</span><span class="p">),</span> <span class="n">valid_nt</span><span class="p">,</span> <span class="n">valid_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Test:  </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_contigs</span><span class="p">),</span> <span class="n">test_nt</span><span class="p">,</span> <span class="n">test_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">train_contigs</span><span class="p">,</span> <span class="n">valid_contigs</span><span class="p">,</span> <span class="n">test_contigs</span><span class="p">]</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="divide_contigs_folds">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.divide_contigs_folds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">divide_contigs_folds</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">folds</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Divide list of contigs into cross fold lists."""</span>
+
+    <span class="c1"># sort contigs descending by length</span>
+    <span class="n">length_contigs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ctg</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg</span><span class="p">)</span> <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">]</span>
+    <span class="n">length_contigs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># compute total nucleotides</span>
+    <span class="n">total_nt</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">lc</span> <span class="ow">in</span> <span class="n">length_contigs</span><span class="p">])</span>
+
+    <span class="c1"># compute aimed fold nucleotides</span>
+    <span class="n">fold_nt_aim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">total_nt</span> <span class="o">/</span> <span class="n">folds</span><span class="p">))</span>
+
+    <span class="c1"># initialize current fold nucleotides</span>
+    <span class="n">fold_nt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">folds</span><span class="p">)</span>
+
+    <span class="c1"># initialize fold contig lists</span>
+    <span class="n">fold_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">folds</span><span class="p">):</span>
+        <span class="n">fold_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+
+    <span class="c1"># process contigs</span>
+    <span class="k">for</span> <span class="n">ctg_len</span><span class="p">,</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">length_contigs</span><span class="p">:</span>
+        <span class="c1"># compute gap between current and aim</span>
+        <span class="n">fold_nt_gap</span> <span class="o">=</span> <span class="n">fold_nt_aim</span> <span class="o">-</span> <span class="n">fold_nt</span>
+        <span class="n">fold_nt_gap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">fold_nt_gap</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+
+        <span class="c1"># compute sample probability</span>
+        <span class="n">fold_prob</span> <span class="o">=</span> <span class="n">fold_nt_gap</span> <span class="o">/</span> <span class="n">fold_nt_gap</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="c1"># sample train/valid/test</span>
+        <span class="n">fi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">folds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">fold_prob</span><span class="p">)</span>
+        <span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+        <span class="n">fold_nt</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Contigs divided into"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">folds</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="s2">" Fold</span><span class="si">%d</span><span class="s2">: </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+            <span class="o">%</span> <span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fold_contigs</span><span class="p">[</span><span class="n">fi</span><span class="p">]),</span> <span class="n">fold_nt</span><span class="p">[</span><span class="n">fi</span><span class="p">],</span> <span class="n">fold_nt</span><span class="p">[</span><span class="n">fi</span><span class="p">]</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fold_contigs</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="divide_contigs_pct">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.divide_contigs_pct">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">divide_contigs_pct</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">test_pct</span><span class="p">,</span> <span class="n">valid_pct</span><span class="p">,</span> <span class="n">pct_abstain</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Divide list of contigs into train/valid/test lists,</span>
+<span class="sd">    aiming for the specified nucleotide percentages."""</span>
+
+    <span class="c1"># sort contigs descending by length</span>
+    <span class="n">length_contigs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ctg</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg</span><span class="p">)</span> <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">]</span>
+    <span class="n">length_contigs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># compute total nucleotides</span>
+    <span class="n">total_nt</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">lc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">lc</span> <span class="ow">in</span> <span class="n">length_contigs</span><span class="p">])</span>
+
+    <span class="c1"># compute aimed train/valid/test nucleotides</span>
+    <span class="n">test_nt_aim</span> <span class="o">=</span> <span class="n">test_pct</span> <span class="o">*</span> <span class="n">total_nt</span>
+    <span class="n">valid_nt_aim</span> <span class="o">=</span> <span class="n">valid_pct</span> <span class="o">*</span> <span class="n">total_nt</span>
+    <span class="n">train_nt_aim</span> <span class="o">=</span> <span class="n">total_nt</span> <span class="o">-</span> <span class="n">valid_nt_aim</span> <span class="o">-</span> <span class="n">test_nt_aim</span>
+
+    <span class="c1"># initialize current train/valid/test nucleotides</span>
+    <span class="n">train_nt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">valid_nt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">test_nt</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># initialize train/valid/test contig lists</span>
+    <span class="n">train_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">valid_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">test_contigs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># process contigs</span>
+    <span class="k">for</span> <span class="n">ctg_len</span><span class="p">,</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">length_contigs</span><span class="p">:</span>
+        <span class="c1"># compute gap between current and aim</span>
+        <span class="n">test_nt_gap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_nt_aim</span> <span class="o">-</span> <span class="n">test_nt</span><span class="p">)</span>
+        <span class="n">valid_nt_gap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">valid_nt_aim</span> <span class="o">-</span> <span class="n">valid_nt</span><span class="p">)</span>
+        <span class="n">train_nt_gap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">train_nt_aim</span> <span class="o">-</span> <span class="n">train_nt</span><span class="p">)</span>
+
+        <span class="c1"># skip if too large</span>
+        <span class="k">if</span> <span class="n">ctg_len</span> <span class="o">&gt;</span> <span class="n">pct_abstain</span> <span class="o">*</span> <span class="n">test_nt_gap</span><span class="p">:</span>
+            <span class="n">test_nt_gap</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">ctg_len</span> <span class="o">&gt;</span> <span class="n">pct_abstain</span> <span class="o">*</span> <span class="n">valid_nt_gap</span><span class="p">:</span>
+            <span class="n">valid_nt_gap</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># compute remaining %</span>
+        <span class="n">gap_sum</span> <span class="o">=</span> <span class="n">train_nt_gap</span> <span class="o">+</span> <span class="n">valid_nt_gap</span> <span class="o">+</span> <span class="n">test_nt_gap</span>
+        <span class="n">test_pct_gap</span> <span class="o">=</span> <span class="n">test_nt_gap</span> <span class="o">/</span> <span class="n">gap_sum</span>
+        <span class="n">valid_pct_gap</span> <span class="o">=</span> <span class="n">valid_nt_gap</span> <span class="o">/</span> <span class="n">gap_sum</span>
+        <span class="n">train_pct_gap</span> <span class="o">=</span> <span class="n">train_nt_gap</span> <span class="o">/</span> <span class="n">gap_sum</span>
+
+        <span class="c1"># sample train/valid/test</span>
+        <span class="n">ri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="p">[</span><span class="n">train_pct_gap</span><span class="p">,</span> <span class="n">valid_pct_gap</span><span class="p">,</span> <span class="n">test_pct_gap</span><span class="p">]</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ri</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">train_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">train_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+        <span class="k">elif</span> <span class="n">ri</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">valid_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">valid_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+        <span class="k">elif</span> <span class="n">ri</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">test_contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+            <span class="n">test_nt</span> <span class="o">+=</span> <span class="n">ctg_len</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"TVT random number beyond 0,1,2"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Contigs divided into"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Train: </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_contigs</span><span class="p">),</span> <span class="n">train_nt</span><span class="p">,</span> <span class="n">train_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Valid: </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_contigs</span><span class="p">),</span> <span class="n">valid_nt</span><span class="p">,</span> <span class="n">valid_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">" Test:  </span><span class="si">%5d</span><span class="s2"> contigs, </span><span class="si">%10d</span><span class="s2"> nt (</span><span class="si">%.4f</span><span class="s2">)"</span>
+        <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_contigs</span><span class="p">),</span> <span class="n">test_nt</span><span class="p">,</span> <span class="n">test_nt</span> <span class="o">/</span> <span class="n">total_nt</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">train_contigs</span><span class="p">,</span> <span class="n">valid_contigs</span><span class="p">,</span> <span class="n">test_contigs</span><span class="p">]</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="limit_contigs">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data.limit_contigs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">limit_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">filter_bed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Limit to contigs overlapping the given BED.</span>
+
+<span class="sd">    Args</span>
+<span class="sd">     contigs: list of Contigs</span>
+<span class="sd">     filter_bed: BED file to filter by</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">     fcontigs: list of Contigs</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># print ctgments to BED</span>
+    <span class="n">ctg_fd</span><span class="p">,</span> <span class="n">ctg_bed_file</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
+    <span class="n">ctg_bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">ctg_bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">ctg_bed_out</span><span class="p">)</span>
+    <span class="n">ctg_bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># intersect w/ filter_bed</span>
+    <span class="n">fcontigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="s2">"bedtools intersect -a </span><span class="si">%s</span><span class="s2"> -b </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">ctg_bed_file</span><span class="p">,</span> <span class="n">filter_bed</span><span class="p">),</span>
+        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrom</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ctg_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ctg_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">fcontigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">Contig</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">ctg_start</span><span class="p">,</span> <span class="n">ctg_end</span><span class="p">))</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">ctg_fd</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ctg_bed_file</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fcontigs</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

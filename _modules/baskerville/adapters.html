@@ -1,0 +1,411 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.adapters &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.adapters</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.adapters</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">tensorflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tf</span>
+
+<span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">list_physical_devices</span><span class="p">(</span><span class="s2">"GPU"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">gpu_devices</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">set_memory_growth</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+
+<span class="c1">#####################</span>
+<span class="c1"># transfer learning #</span>
+<span class="c1">#####################</span>
+<div class="viewcode-block" id="IA3">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IA3</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="c1"># https://arxiv.org/pdf/2205.05638.pdf</span>
+    <span class="c1"># ia3 module for attention layer, scale output.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># keep the name of this layer the same as the original dense layer.</span>
+        <span class="n">original_layer_config</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"units"</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span> <span class="o">=</span> <span class="n">original_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># IA3 weights. Make it a dense layer to control trainable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ia3_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Ones</span><span class="p">(),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"ia3"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="IA3.call">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3.call">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">original_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">scaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float64"</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">original_output</span> <span class="o">*</span> <span class="n">scaler</span></div>
+
+
+<div class="viewcode-block" id="IA3.get_config">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"size"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="IA3_ff">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3_ff">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IA3_ff</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="c1"># https://arxiv.org/pdf/2205.05638.pdf</span>
+    <span class="c1"># ia3 module for down-projection ff layer, scale input.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_layer</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># keep the name of this layer the same as the original dense layer.</span>
+        <span class="n">original_layer_config</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span> <span class="o">=</span> <span class="n">original_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># IA3 weights. Make it a dense layer to control trainable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ia3_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Ones</span><span class="p">(),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"ia3_ff"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="IA3_ff.call">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3_ff.call">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">scaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ia3_layer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float64"</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="p">(</span><span class="n">inputs</span> <span class="o">*</span> <span class="n">scaler</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="IA3_ff.get_config">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.IA3_ff.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"size"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Lora">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Lora">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Lora</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="c1"># adapted from:</span>
+    <span class="c1"># https://arxiv.org/abs/2106.09685</span>
+    <span class="c1"># https://keras.io/examples/nlp/parameter_efficient_finetuning_of_gpt2_with_lora/</span>
+    <span class="c1"># https://github.com/Elvenson/stable-diffusion-keras-ft/blob/main/layers.py</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># keep the name of this layer the same as the original dense layer.</span>
+        <span class="n">original_layer_config</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"units"</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"LoRA rank </span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2"> must be less or equal than </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span> <span class="o">=</span> <span class="n">original_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Note: the original paper mentions that normal distribution was</span>
+        <span class="c1"># used for initialization. However, the official LoRA implementation</span>
+        <span class="c1"># uses "Kaiming/He Initialization".</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">HeUniform</span><span class="p">(),</span>
+            <span class="c1"># kernel_initializer=tf.keras.initializers.RandomNormal(stddev=1 / self.rank),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"lora_a"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Zeros</span><span class="p">(),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"lora_b"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Lora.call">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Lora.call">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">original_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">lora_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">down_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">return</span> <span class="n">original_output</span> <span class="o">+</span> <span class="n">lora_output</span></div>
+
+
+<div class="viewcode-block" id="Lora.get_config">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Lora.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"rank"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Locon">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Locon">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Locon</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="c1"># LoRA for conv-layer, adapted from:</span>
+    <span class="c1"># https://arxiv.org/pdf/2309.14859#page=23.84</span>
+    <span class="c1"># https://github.com/KohakuBlueleaf/LyCORIS/blob/main/lycoris/modules/locon.py</span>
+    <span class="c1"># use default alpha and rank for locon</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_layer</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># keep the name of this layer the same as the original conv layer.</span>
+        <span class="n">original_layer_config</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"filters"</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"LoRA rank </span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2"> must be less or equal than </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span> <span class="o">=</span> <span class="n">original_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="o">.</span><span class="n">trainable</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">output_dim</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"filters"</span><span class="p">]</span>
+        <span class="n">kernel_size</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"kernel_size"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"strides"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dilation_rate</span> <span class="o">=</span> <span class="n">original_layer_config</span><span class="p">[</span><span class="s2">"dilation_rate"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Note: the original paper mentions that normal distribution was</span>
+        <span class="c1"># used for initialization. However, the official LoRA implementation</span>
+        <span class="c1"># uses "Kaiming/He Initialization".</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv1D</span><span class="p">(</span>
+            <span class="n">filters</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">strides</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="s2">"same"</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">dilation_rate</span><span class="o">=</span><span class="n">dilation_rate</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">HeUniform</span><span class="p">(),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"locon_down"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv1D</span><span class="p">(</span>
+            <span class="n">filters</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">strides</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="s2">"same"</span><span class="p">,</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Zeros</span><span class="p">(),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"locon_up"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Locon.call">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Locon.call">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">original_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">lora_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">down_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">return</span> <span class="n">original_output</span> <span class="o">+</span> <span class="n">lora_output</span></div>
+
+
+<div class="viewcode-block" id="Locon.get_config">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.Locon.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"rank"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="s2">"alpha"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AdapterHoulsby">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.AdapterHoulsby">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AdapterHoulsby</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="c1"># https://arxiv.org/abs/1902.00751</span>
+    <span class="c1"># adapted from: https://github.com/jain-harshil/Adapter-BERT</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latent_size</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AdapterHoulsby</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_size</span> <span class="o">=</span> <span class="n">latent_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span>
+
+<div class="viewcode-block" id="AdapterHoulsby.build">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.AdapterHoulsby.build">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_project</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_size</span><span class="p">,</span>
+            <span class="n">activation</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">TruncatedNormal</span><span class="p">(</span><span class="n">stddev</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">),</span>
+            <span class="n">bias_initializer</span><span class="o">=</span><span class="s2">"zeros"</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"adapter_down"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_project</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+            <span class="n">units</span><span class="o">=</span><span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">activation</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
+            <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">TruncatedNormal</span><span class="p">(</span><span class="n">stddev</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">),</span>
+            <span class="n">bias_initializer</span><span class="o">=</span><span class="s2">"zeros"</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"adapter_up"</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AdapterHoulsby.call">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.AdapterHoulsby.call">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">projected_down</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_project</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">activated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="n">projected_down</span><span class="p">)</span>
+        <span class="n">projected_up</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_project</span><span class="p">(</span><span class="n">activated</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">projected_up</span> <span class="o">+</span> <span class="n">inputs</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="AdapterHoulsby.get_config">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.adapters.AdapterHoulsby.get_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"latent_size"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_size</span><span class="p">,</span> <span class="s2">"activation"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

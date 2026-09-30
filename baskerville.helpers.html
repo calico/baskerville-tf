@@ -1,0 +1,372 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.helpers package &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="baskerville.scripts package" href="baskerville.scripts.html" />
+    <link rel="prev" title="baskerville package" href="baskerville.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="baskerville.html">baskerville package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="baskerville.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">baskerville.helpers package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.gcs_utils">baskerville.helpers.gcs_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.h5_baskerville_utils">baskerville.helpers.h5_baskerville_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.h5_utils">baskerville.helpers.h5_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.tensorrt_helpers">baskerville.helpers.tensorrt_helpers module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.trt_optimized_model">baskerville.helpers.trt_optimized_model module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers.utils">baskerville.helpers.utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-baskerville.helpers">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="baskerville.scripts.html">baskerville.scripts package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.adapters">baskerville.adapters module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.bed">baskerville.bed module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.blocks">baskerville.blocks module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.data">baskerville.data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.dataset">baskerville.dataset module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.dna">baskerville.dna module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.gene">baskerville.gene module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.layers">baskerville.layers module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.metrics">baskerville.metrics module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.seqnn">baskerville.seqnn module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.snps">baskerville.snps module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.stream">baskerville.stream module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.trainer">baskerville.trainer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.transfer">baskerville.transfer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville.vcf">baskerville.vcf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="baskerville.html#module-baskerville">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="baskerville.html">baskerville package</a></li>
+      <li class="breadcrumb-item active">baskerville.helpers package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/baskerville.helpers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="baskerville-helpers-package">
+<h1>baskerville.helpers package<a class="headerlink" href="#baskerville-helpers-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-baskerville.helpers.gcs_utils">
+<span id="baskerville-helpers-gcs-utils-module"></span><h2>baskerville.helpers.gcs_utils module<a class="headerlink" href="#module-baskerville.helpers.gcs_utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.download_folder_from_gcs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">download_folder_from_gcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gcs_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#download_folder_from_gcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.download_folder_from_gcs" title="Link to this definition"></a></dt>
+<dd><p>Downloads a whole folder from GCS
+:param gcs_dir: string path to GCS folder to download
+:param local_dir: string path to download to
+:param bytes: boolean flag indicating if gcs file contains bytes</p>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.download_from_gcs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">download_from_gcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gcs_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#download_from_gcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.download_from_gcs" title="Link to this definition"></a></dt>
+<dd><p>Downloads a file from GCS
+:param gcs_path: string path to GCS file to download
+:param local_path: string path to download to
+:param bytes: boolean flag indicating if gcs file contains bytes</p>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.download_rename_inputs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">download_rename_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#download_rename_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.download_rename_inputs" title="Link to this definition"></a></dt>
+<dd><p>Download file from gcs to local dir
+:param filepath: GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME
+:param temp_dir: local dir to download to
+:param is_dir: boolean flag indicating if the filepath is a directory</p>
+<p>Returns: new filepath in the local machine</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.gcs_file_exist">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">gcs_file_exist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gcs_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#gcs_file_exist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.gcs_file_exist" title="Link to this definition"></a></dt>
+<dd><p>check if a file exist in gcs
+params: gcs_path
+returns: true/false</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.gcs_join">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">gcs_join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#gcs_join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.gcs_join" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.get_filename_in_dir">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">get_filename_in_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#get_filename_in_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.get_filename_in_dir" title="Link to this definition"></a></dt>
+<dd><p>Returns list of filenames inside a directory.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.is_gcs_path">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">is_gcs_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gcs_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#is_gcs_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.is_gcs_path" title="Link to this definition"></a></dt>
+<dd><p>Returns True if the string passed starts with gs://
+:param gcs_path: string path to check</p>
+<p>Returns: Boolean flag indicating the gcs_path starts with gs://</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.split_gcs_uri">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">split_gcs_uri</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gcs_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#split_gcs_uri"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.split_gcs_uri" title="Link to this definition"></a></dt>
+<dd><p>Splits a GCS bucket and object_name from a GCS URI
+:param gcs_uri: string GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME</p>
+<p>Returns: bucket_name, object_name</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.sync_dir_to_gcs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">sync_dir_to_gcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gcs_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#sync_dir_to_gcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.sync_dir_to_gcs" title="Link to this definition"></a></dt>
+<dd><p>Copies all files in a local directory to the gcs directory
+:param local_dir: string local directory path to upload from
+:param gcs_dir: string GCS destination path. Will create folders that do not exist.
+:param verbose: boolean flag to print logging statements
+:param recursive: boolean flag to recursively upload files in subdirectories</p>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.upload_file_gcs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">upload_file_gcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gcs_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#upload_file_gcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.upload_file_gcs" title="Link to this definition"></a></dt>
+<dd><p>Upload a file to gcs
+:param local_path: local path to file
+:param gcs_path: string GCS Uri follows the format gs://$BUCKET_NAME/OBJECT_NAME</p>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.gcs_utils.upload_folder_gcs">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.gcs_utils.</span></span><span class="sig-name descname"><span class="pre">upload_folder_gcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gcs_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/gcs_utils.html#upload_folder_gcs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.gcs_utils.upload_folder_gcs" title="Link to this definition"></a></dt>
+<dd><p>Copies all files in a local directory to the gcs directory
+:param local_dir: string local directory path to upload from
+:param gcs_dir: string GCS destination path. Will create folders that do not exist.</p>
+<p>Returns: None</p>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.helpers.h5_baskerville_utils">
+<span id="baskerville-helpers-h5-baskerville-utils-module"></span><h2>baskerville.helpers.h5_baskerville_utils module<a class="headerlink" href="#module-baskerville.helpers.h5_baskerville_utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.h5_baskerville_utils.collect_h5">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.h5_baskerville_utils.</span></span><span class="sig-name descname"><span class="pre">collect_h5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_procs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/h5_baskerville_utils.html#collect_h5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.h5_baskerville_utils.collect_h5" title="Link to this definition"></a></dt>
+<dd><p>Concatenate all output files together
+:param file_name: filename containing output (sad.h5)
+:param out_dir: directory containing output files
+:param num_procs: number of processes</p>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.h5_baskerville_utils.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.h5_baskerville_utils.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/h5_baskerville_utils.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.h5_baskerville_utils.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.helpers.h5_utils">
+<span id="baskerville-helpers-h5-utils-module"></span><h2>baskerville.helpers.h5_utils module<a class="headerlink" href="#module-baskerville.helpers.h5_utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.h5_utils.collect_h5">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.h5_utils.</span></span><span class="sig-name descname"><span class="pre">collect_h5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_procs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/h5_utils.html#collect_h5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.h5_utils.collect_h5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.h5_utils.collect_h5_borzoi">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.h5_utils.</span></span><span class="sig-name descname"><span class="pre">collect_h5_borzoi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_procs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sad_stat</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/baskerville/helpers/h5_utils.html#collect_h5_borzoi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.h5_utils.collect_h5_borzoi" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.helpers.tensorrt_helpers">
+<span id="baskerville-helpers-tensorrt-helpers-module"></span><h2>baskerville.helpers.tensorrt_helpers module<a class="headerlink" href="#module-baskerville.helpers.tensorrt_helpers" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">baskerville.helpers.tensorrt_helpers.</span></span><span class="sig-name descname"><span class="pre">ModelOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_saved_model_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calibration_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class of converter for tensorrt
+:param input_saved_model_dir: Folder with saved model of the input model</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer.build">
+<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer.build" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer.build_func">
+<span class="sig-name descname"><span class="pre">build_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer.build_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer.build_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer.convert">
+<span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'FP32'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer.convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer.convert" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer.save" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.ModelOptimizer.set_calibration_data">
+<span class="sig-name descname"><span class="pre">set_calibration_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calibration_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#ModelOptimizer.set_calibration_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.ModelOptimizer.set_calibration_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.tensorrt_helpers.main">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.tensorrt_helpers.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/tensorrt_helpers.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.tensorrt_helpers.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-baskerville.helpers.trt_optimized_model">
+<span id="baskerville-helpers-trt-optimized-model-module"></span><h2>baskerville.helpers.trt_optimized_model module<a class="headerlink" href="#module-baskerville.helpers.trt_optimized_model" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="baskerville.helpers.trt_optimized_model.OptimizedModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">baskerville.helpers.trt_optimized_model.</span></span><span class="sig-name descname"><span class="pre">OptimizedModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saved_model_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strand_pair</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/trt_optimized_model.html#OptimizedModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.trt_optimized_model.OptimizedModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class of model optimized with tensorrt
+:param saved_model_dir: Folder with saved model</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.trt_optimized_model.OptimizedModel.load_model">
+<span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">saved_model_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/trt_optimized_model.html#OptimizedModel.load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.trt_optimized_model.OptimizedModel.load_model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="baskerville.helpers.trt_optimized_model.OptimizedModel.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/trt_optimized_model.html#OptimizedModel.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.trt_optimized_model.OptimizedModel.predict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-baskerville.helpers.utils">
+<span id="baskerville-helpers-utils-module"></span><h2>baskerville.helpers.utils module<a class="headerlink" href="#module-baskerville.helpers.utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.utils.exec_par">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.utils.</span></span><span class="sig-name descname"><span class="pre">exec_par</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_proc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/utils.html#exec_par"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.utils.exec_par" title="Link to this definition"></a></dt>
+<dd><p>Execute the commands in the list ‘cmds’ in parallel, but
+only running ‘max_proc’ at a time.
+:param cmds: list of commands to execute
+:param max_proc: maximum number of processes to run in parallel
+:param verbose: print command to stderr</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="baskerville.helpers.utils.load_extra_options">
+<span class="sig-prename descclassname"><span class="pre">baskerville.helpers.utils.</span></span><span class="sig-name descname"><span class="pre">load_extra_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options_pkl_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/baskerville/helpers/utils.html#load_extra_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#baskerville.helpers.utils.load_extra_options" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>options_pkl_file</strong> – option file</p></li>
+<li><p><strong>options</strong> – existing options from command line</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>updated options</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>options</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-baskerville.helpers">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-baskerville.helpers" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="baskerville.html" class="btn btn-neutral float-left" title="baskerville package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="baskerville.scripts.html" class="btn btn-neutral float-right" title="baskerville.scripts package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

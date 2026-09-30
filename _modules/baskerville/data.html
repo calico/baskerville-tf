@@ -1,0 +1,443 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.data &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.data</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2023 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">collections</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">heapq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pysam</span>
+
+<span class="sd">"""</span>
+<span class="sd">data.py</span>
+
+<span class="sd">Helper methods for hound_data*</span>
+<span class="sd">"""</span>
+
+
+<div class="viewcode-block" id="annotate_unmap">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.annotate_unmap">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_unmap</span><span class="p">(</span><span class="n">mseqs</span><span class="p">,</span> <span class="n">unmap_bed</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">pool_width</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Intersect the sequence segments with unmappable regions</span>
+<span class="sd">         and annoate the segments as NaN to possible be ignored.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      mseqs: list of ModelSeq's</span>
+<span class="sd">      unmap_bed: unmappable regions BED file</span>
+<span class="sd">      seq_length: sequence length (after cropping)</span>
+<span class="sd">      pool_width: pooled bin width</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      seqs_unmap: NxL binary NA indicators</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># print sequence segments to file</span>
+    <span class="n">seqs_temp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
+    <span class="n">seqs_bed_file</span> <span class="o">=</span> <span class="n">seqs_temp</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">write_seqs_bed</span><span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">,</span> <span class="n">mseqs</span><span class="p">)</span>
+
+    <span class="c1"># hash segments to indexes</span>
+    <span class="n">chr_start_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mseqs</span><span class="p">)):</span>
+        <span class="n">chr_start_indexes</span><span class="p">[(</span><span class="n">mseqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">mseqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="n">i</span>
+
+    <span class="c1"># initialize unmappable array</span>
+    <span class="n">pool_seq_length</span> <span class="o">=</span> <span class="n">seq_length</span> <span class="o">//</span> <span class="n">pool_width</span>
+    <span class="n">seqs_unmap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">mseqs</span><span class="p">),</span> <span class="n">pool_seq_length</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"bool"</span><span class="p">)</span>
+
+    <span class="c1"># intersect with unmappable regions</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+        <span class="s2">"bedtools intersect -wo -a </span><span class="si">%s</span><span class="s2"> -b </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">,</span> <span class="n">unmap_bed</span><span class="p">),</span>
+        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="n">seq_chrom</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">seq_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">seq_chrom</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">)</span>
+
+        <span class="n">unmap_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">unmap_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+
+        <span class="n">overlap_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">seq_start</span><span class="p">,</span> <span class="n">unmap_start</span><span class="p">)</span>
+        <span class="n">overlap_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">seq_end</span><span class="p">,</span> <span class="n">unmap_end</span><span class="p">)</span>
+
+        <span class="n">pool_seq_unmap_start</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">overlap_start</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">)</span> <span class="o">/</span> <span class="n">pool_width</span><span class="p">)</span>
+        <span class="n">pool_seq_unmap_end</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">overlap_end</span> <span class="o">-</span> <span class="n">seq_start</span><span class="p">)</span> <span class="o">/</span> <span class="n">pool_width</span><span class="p">)</span>
+
+        <span class="c1"># skip minor overlaps to the first</span>
+        <span class="n">first_start</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">pool_seq_unmap_start</span> <span class="o">*</span> <span class="n">pool_width</span>
+        <span class="n">first_end</span> <span class="o">=</span> <span class="n">first_start</span> <span class="o">+</span> <span class="n">pool_width</span>
+        <span class="n">first_overlap</span> <span class="o">=</span> <span class="n">first_end</span> <span class="o">-</span> <span class="n">overlap_start</span>
+        <span class="k">if</span> <span class="n">first_overlap</span> <span class="o">&lt;</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pool_width</span><span class="p">:</span>
+            <span class="n">pool_seq_unmap_start</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># skip minor overlaps to the last</span>
+        <span class="n">last_start</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="p">(</span><span class="n">pool_seq_unmap_end</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">pool_width</span>
+        <span class="n">last_overlap</span> <span class="o">=</span> <span class="n">overlap_end</span> <span class="o">-</span> <span class="n">last_start</span>
+        <span class="k">if</span> <span class="n">last_overlap</span> <span class="o">&lt;</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">pool_width</span><span class="p">:</span>
+            <span class="n">pool_seq_unmap_end</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="n">seqs_unmap</span><span class="p">[</span>
+            <span class="n">chr_start_indexes</span><span class="p">[</span><span class="n">seq_key</span><span class="p">],</span> <span class="n">pool_seq_unmap_start</span><span class="p">:</span><span class="n">pool_seq_unmap_end</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">seqs_unmap</span><span class="p">[</span>
+                <span class="n">chr_start_indexes</span><span class="p">[</span><span class="n">seq_key</span><span class="p">],</span> <span class="n">pool_seq_unmap_start</span><span class="p">:</span><span class="n">pool_seq_unmap_end</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="o">==</span> <span class="n">pool_seq_unmap_end</span> <span class="o">-</span> <span class="n">pool_seq_unmap_start</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">seqs_unmap</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="break_large_contigs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.break_large_contigs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">break_large_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">break_t</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Break large contigs in half until all contigs are under</span>
+<span class="sd">    the size threshold."""</span>
+
+    <span class="c1"># initialize a heapq of contigs and lengths</span>
+    <span class="n">contig_heapq</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+        <span class="n">ctg_len</span> <span class="o">=</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="n">contig_heapq</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">ctg_len</span><span class="p">,</span> <span class="n">ctg</span><span class="p">))</span>
+
+    <span class="n">ctg_len</span> <span class="o">=</span> <span class="n">break_t</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">ctg_len</span> <span class="o">&gt;</span> <span class="n">break_t</span><span class="p">:</span>
+        <span class="c1"># pop largest contig</span>
+        <span class="n">ctg_nlen</span><span class="p">,</span> <span class="n">ctg</span> <span class="o">=</span> <span class="n">heapq</span><span class="o">.</span><span class="n">heappop</span><span class="p">(</span><span class="n">contig_heapq</span><span class="p">)</span>
+        <span class="n">ctg_len</span> <span class="o">=</span> <span class="o">-</span><span class="n">ctg_nlen</span>
+
+        <span class="c1"># if too large</span>
+        <span class="k">if</span> <span class="n">ctg_len</span> <span class="o">&gt;</span> <span class="n">break_t</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"Breaking </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2"> (</span><span class="si">%d</span><span class="s2"> nt)"</span> <span class="o">%</span> <span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">ctg_len</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># break in two</span>
+            <span class="n">ctg_mid</span> <span class="o">=</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">ctg_len</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">ctg_left</span> <span class="o">=</span> <span class="n">Contig</span><span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">genome</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">ctg_mid</span><span class="p">)</span>
+            <span class="n">ctg_right</span> <span class="o">=</span> <span class="n">Contig</span><span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">genome</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">ctg_mid</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+
+            <span class="c1"># add left</span>
+            <span class="n">ctg_left_len</span> <span class="o">=</span> <span class="n">ctg_left</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg_left</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="n">contig_heapq</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">ctg_left_len</span><span class="p">,</span> <span class="n">ctg_left</span><span class="p">))</span>
+
+            <span class="c1"># add right</span>
+            <span class="n">ctg_right_len</span> <span class="o">=</span> <span class="n">ctg_right</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">ctg_right</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="n">contig_heapq</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">ctg_right_len</span><span class="p">,</span> <span class="n">ctg_right</span><span class="p">))</span>
+
+    <span class="c1"># return to list</span>
+    <span class="n">contigs</span> <span class="o">=</span> <span class="p">[</span><span class="n">len_ctg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">len_ctg</span> <span class="ow">in</span> <span class="n">contig_heapq</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">contigs</span></div>
+
+
+
+<div class="viewcode-block" id="contig_sequences">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.contig_sequences">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">contig_sequences</span><span class="p">(</span><span class="n">contigs</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">snap</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Break up a list of Contig's into a list of model length</span>
+<span class="sd">    and stride sequence contigs."""</span>
+    <span class="n">mseqs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+        <span class="n">seq_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">start</span> <span class="o">/</span> <span class="n">snap</span><span class="p">)</span> <span class="o">*</span> <span class="n">snap</span><span class="p">)</span>
+        <span class="n">seq_end</span> <span class="o">=</span> <span class="n">seq_start</span> <span class="o">+</span> <span class="n">seq_length</span>
+
+        <span class="k">while</span> <span class="n">seq_end</span> <span class="o">&lt;</span> <span class="n">ctg</span><span class="o">.</span><span class="n">end</span><span class="p">:</span>
+            <span class="c1"># record sequence</span>
+            <span class="n">mseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ModelSeq</span><span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">genome</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span><span class="p">,</span> <span class="n">label</span><span class="p">))</span>
+
+            <span class="c1"># update</span>
+            <span class="n">seq_start</span> <span class="o">+=</span> <span class="n">stride</span>
+            <span class="n">seq_end</span> <span class="o">+=</span> <span class="n">stride</span>
+
+    <span class="k">return</span> <span class="n">mseqs</span></div>
+
+
+
+<div class="viewcode-block" id="load_chromosomes">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.load_chromosomes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_chromosomes</span><span class="p">(</span><span class="n">genome_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Load genome segments from either a FASTA file or</span>
+<span class="sd">    chromosome length table."""</span>
+
+    <span class="c1"># is genome_file FASTA or (chrom,start,end) table?</span>
+    <span class="n">file_fasta</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">genome_file</span><span class="p">)</span><span class="o">.</span><span class="n">readline</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&gt;"</span>
+
+    <span class="n">chrom_segments</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">file_fasta</span><span class="p">:</span>
+        <span class="n">fasta_open</span> <span class="o">=</span> <span class="n">pysam</span><span class="o">.</span><span class="n">Fastafile</span><span class="p">(</span><span class="n">genome_file</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fasta_open</span><span class="o">.</span><span class="n">references</span><span class="p">)):</span>
+            <span class="n">chrom_segments</span><span class="p">[</span><span class="n">fasta_open</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">fasta_open</span><span class="o">.</span><span class="n">lengths</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
+        <span class="n">fasta_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">genome_file</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">chrom_segments</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]))]</span>
+
+    <span class="k">return</span> <span class="n">chrom_segments</span></div>
+
+
+
+<div class="viewcode-block" id="rejoin_large_contigs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.rejoin_large_contigs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rejoin_large_contigs</span><span class="p">(</span><span class="n">contigs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Rejoin large contigs that were broken up before alignment comparison."""</span>
+
+    <span class="c1"># split list by genome/chromosome</span>
+    <span class="n">gchr_contigs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ctg</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+        <span class="n">gchr</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctg</span><span class="o">.</span><span class="n">genome</span><span class="p">,</span> <span class="n">ctg</span><span class="o">.</span><span class="n">chr</span><span class="p">)</span>
+        <span class="n">gchr_contigs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">gchr</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg</span><span class="p">)</span>
+
+    <span class="n">contigs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">gchr</span> <span class="ow">in</span> <span class="n">gchr_contigs</span><span class="p">:</span>
+        <span class="c1"># sort within chromosome</span>
+        <span class="n">gchr_contigs</span><span class="p">[</span><span class="n">gchr</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="c1"># gchr_contigs[gchr] = sorted(gchr_contigs[gchr], key=lambda ctg: ctg.start)</span>
+
+        <span class="n">ctg_ongoing</span> <span class="o">=</span> <span class="n">gchr_contigs</span><span class="p">[</span><span class="n">gchr</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gchr_contigs</span><span class="p">[</span><span class="n">gchr</span><span class="p">])):</span>
+            <span class="n">ctg_this</span> <span class="o">=</span> <span class="n">gchr_contigs</span><span class="p">[</span><span class="n">gchr</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ctg_ongoing</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="n">ctg_this</span><span class="o">.</span><span class="n">start</span><span class="p">:</span>
+                <span class="c1"># join</span>
+                <span class="c1"># ctg_ongoing.end = ctg_this.end</span>
+                <span class="n">ctg_ongoing</span> <span class="o">=</span> <span class="n">ctg_ongoing</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span><span class="n">end</span><span class="o">=</span><span class="n">ctg_this</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># conclude ongoing</span>
+                <span class="n">contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg_ongoing</span><span class="p">)</span>
+
+                <span class="c1"># move to next</span>
+                <span class="n">ctg_ongoing</span> <span class="o">=</span> <span class="n">ctg_this</span>
+
+        <span class="c1"># conclude final</span>
+        <span class="n">contigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctg_ongoing</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contigs</span></div>
+
+
+
+<div class="viewcode-block" id="split_contigs">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.split_contigs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_contigs</span><span class="p">(</span><span class="n">chrom_segments</span><span class="p">,</span> <span class="n">gaps_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Split the assembly up into contigs defined by the gaps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      chrom_segments: dict mapping chromosome names to lists of (start,end)</span>
+<span class="sd">      gaps_file: file specifying assembly gaps</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      chrom_segments: same, with segments broken by the assembly gaps.</span>
+<span class="sd">    """</span>
+
+    <span class="n">chrom_events</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># add known segments</span>
+    <span class="k">for</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">chrom_segments</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chrom_segments</span><span class="p">[</span><span class="n">chrom</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">"I've made a terrible mistake...regarding the length of chrom_segments[</span><span class="si">%s</span><span class="s2">]"</span>
+                <span class="o">%</span> <span class="n">chrom</span><span class="p">,</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cstart</span><span class="p">,</span> <span class="n">cend</span> <span class="o">=</span> <span class="n">chrom_segments</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">chrom_events</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cstart</span><span class="p">,</span> <span class="s2">"Cstart"</span><span class="p">))</span>
+        <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cend</span><span class="p">,</span> <span class="s2">"cend"</span><span class="p">))</span>
+
+    <span class="c1"># add gaps</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">gaps_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chrom</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">gstart</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">gend</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># consider only if its in our genome</span>
+        <span class="k">if</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">chrom_events</span><span class="p">:</span>
+            <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">gstart</span><span class="p">,</span> <span class="s2">"gstart"</span><span class="p">))</span>
+            <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">gend</span><span class="p">,</span> <span class="s2">"Gend"</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">chrom</span> <span class="ow">in</span> <span class="n">chrom_events</span><span class="p">:</span>
+        <span class="c1"># sort</span>
+        <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+        <span class="c1"># read out segments</span>
+        <span class="n">chrom_segments</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">pos1</span><span class="p">,</span> <span class="n">event1</span> <span class="o">=</span> <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">pos2</span><span class="p">,</span> <span class="n">event2</span> <span class="o">=</span> <span class="n">chrom_events</span><span class="p">[</span><span class="n">chrom</span><span class="p">][</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">event1</span> <span class="o">=</span> <span class="n">event1</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">event2</span> <span class="o">=</span> <span class="n">event2</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+            <span class="n">shipit</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">event1</span> <span class="o">==</span> <span class="s2">"cstart"</span> <span class="ow">and</span> <span class="n">event2</span> <span class="o">==</span> <span class="s2">"cend"</span><span class="p">:</span>
+                <span class="n">shipit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">event1</span> <span class="o">==</span> <span class="s2">"cstart"</span> <span class="ow">and</span> <span class="n">event2</span> <span class="o">==</span> <span class="s2">"gstart"</span><span class="p">:</span>
+                <span class="n">shipit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">event1</span> <span class="o">==</span> <span class="s2">"gend"</span> <span class="ow">and</span> <span class="n">event2</span> <span class="o">==</span> <span class="s2">"gstart"</span><span class="p">:</span>
+                <span class="n">shipit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">event1</span> <span class="o">==</span> <span class="s2">"gend"</span> <span class="ow">and</span> <span class="n">event2</span> <span class="o">==</span> <span class="s2">"cend"</span><span class="p">:</span>
+                <span class="n">shipit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">event1</span> <span class="o">==</span> <span class="s2">"gstart"</span> <span class="ow">and</span> <span class="n">event2</span> <span class="o">==</span> <span class="s2">"gend"</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"I'm confused by this event ordering: </span><span class="si">%s</span><span class="s2"> - </span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">event1</span><span class="p">,</span> <span class="n">event2</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">shipit</span> <span class="ow">and</span> <span class="n">pos1</span> <span class="o">&lt;</span> <span class="n">pos2</span><span class="p">:</span>
+                <span class="n">chrom_segments</span><span class="p">[</span><span class="n">chrom</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pos1</span><span class="p">,</span> <span class="n">pos2</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">chrom_segments</span></div>
+
+
+
+<div class="viewcode-block" id="write_seqs_bed">
+<a class="viewcode-back" href="../../baskerville.html#baskerville.data.write_seqs_bed">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_seqs_bed</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="n">seqs</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Write sequences to BED file."""</span>
+    <span class="n">bed_out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">bed_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">seqs</span><span class="p">)):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s2">"</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%d</span><span class="s2">"</span> <span class="o">%</span> <span class="p">(</span><span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">labels</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\t</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">seqs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">label</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">bed_out</span><span class="p">)</span>
+    <span class="n">bed_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<span class="c1">################################################################################</span>
+<span class="n">Contig</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s2">"Contig"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"genome"</span><span class="p">,</span> <span class="s2">"chr"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">])</span>
+<span class="n">ModelSeq</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">"ModelSeq"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"genome"</span><span class="p">,</span> <span class="s2">"chr"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

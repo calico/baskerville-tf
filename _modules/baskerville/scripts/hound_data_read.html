@@ -1,0 +1,564 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>baskerville.scripts.hound_data_read &mdash; baskerville-tf  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            baskerville-tf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../baskerville.html">baskerville package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">baskerville-tf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">baskerville.scripts.hound_data_read</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for baskerville.scripts.hound_data_read</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Copyright 2017 Calico LLC</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the "License");</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1">#     https://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an "AS IS" BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># =========================================================================</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">optparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptionParser</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">intervaltree</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.interpolate</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyBigWig</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">baskerville</span><span class="w"> </span><span class="kn">import</span> <span class="n">data</span>
+
+<span class="sd">"""</span>
+<span class="sd">hound_data_read.py</span>
+
+<span class="sd">Read sequence values from coverage files.</span>
+<span class="sd">"""</span>
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># main</span>
+<span class="c1">################################################################################</span>
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">usage</span> <span class="o">=</span> <span class="s2">"usage: %prog [options] &lt;genome_cov_file&gt; &lt;seqs_bed_file&gt; &lt;seqs_cov_file&gt;"</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">OptionParser</span><span class="p">(</span><span class="n">usage</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-b"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"blacklist_bed"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Set blacklist nucleotides to a baseline value."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--black_pct"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"blacklist_pct"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Clip blacklisted regions to this distribution value [Default: </span><span class="si">%d</span><span class="s2">efault"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-c"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"clip"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Clip values post-summary to a maximum [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--clip_soft"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"clip_soft"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Soft clip values, applying sqrt to the execess above the threshold [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--clip_pct"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"clip_pct"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.9999999</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Clip extreme values to this distribution value [Default: </span><span class="si">%d</span><span class="s2">efault"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--crop"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"crop_bp"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Crop bp off each end [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-i"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"interp_nan"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Interpolate NaNs [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-s"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"scale"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"float"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Scale values by [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-u"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"sum_stat"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Summary statistic to compute in windows [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"-w"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"pool_width"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">"int"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Average pooling width [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+        <span class="s2">"--transform_old"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"transform_old"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Apply old target transforms [Default: </span><span class="si">%d</span><span class="s2">efault]"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">genome_cov_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">seqs_bed_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">seqs_cov_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+
+    <span class="c1"># read model sequences</span>
+    <span class="n">model_seqs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">seqs_bed_file</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">model_seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ModelSeq</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="kc">None</span><span class="p">))</span>
+
+    <span class="c1"># read blacklist regions</span>
+    <span class="n">black_chr_trees</span> <span class="o">=</span> <span class="n">read_blacklist</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">blacklist_bed</span><span class="p">)</span>
+
+    <span class="c1"># compute dimensions</span>
+    <span class="n">num_seqs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_seqs</span><span class="p">)</span>
+    <span class="n">seq_len_nt</span> <span class="o">=</span> <span class="n">model_seqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">model_seqs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+    <span class="n">seq_len_nt</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span>
+    <span class="n">target_length</span> <span class="o">=</span> <span class="n">seq_len_nt</span> <span class="o">//</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span>
+    <span class="k">assert</span> <span class="n">target_length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="c1"># collect targets</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># open genome coverage file</span>
+    <span class="n">genome_cov_open</span> <span class="o">=</span> <span class="n">CovFace</span><span class="p">(</span><span class="n">genome_cov_file</span><span class="p">)</span>
+
+    <span class="c1"># for each model sequence</span>
+    <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_seqs</span><span class="p">):</span>
+        <span class="n">mseq</span> <span class="o">=</span> <span class="n">model_seqs</span><span class="p">[</span><span class="n">si</span><span class="p">]</span>
+
+        <span class="c1"># read coverage</span>
+        <span class="n">seq_cov_nt</span> <span class="o">=</span> <span class="n">genome_cov_open</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">mseq</span><span class="o">.</span><span class="n">chr</span><span class="p">,</span> <span class="n">mseq</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">mseq</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">seq_cov_nt</span> <span class="o">=</span> <span class="n">seq_cov_nt</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
+
+        <span class="c1"># interpolate NaN</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">interp_nan</span><span class="p">:</span>
+            <span class="n">seq_cov_nt</span> <span class="o">=</span> <span class="n">interp_nan</span><span class="p">(</span><span class="n">seq_cov_nt</span><span class="p">)</span>
+
+        <span class="c1"># determine baseline coverage</span>
+        <span class="k">if</span> <span class="n">target_length</span> <span class="o">&gt;=</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">baseline_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">seq_cov_nt</span><span class="p">,</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">blacklist_pct</span><span class="p">)</span>
+            <span class="n">baseline_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">baseline_cov</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">baseline_cov</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># set blacklist to baseline</span>
+        <span class="k">if</span> <span class="n">mseq</span><span class="o">.</span><span class="n">chr</span> <span class="ow">in</span> <span class="n">black_chr_trees</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">black_interval</span> <span class="ow">in</span> <span class="n">black_chr_trees</span><span class="p">[</span><span class="n">mseq</span><span class="o">.</span><span class="n">chr</span><span class="p">][</span><span class="n">mseq</span><span class="o">.</span><span class="n">start</span> <span class="p">:</span> <span class="n">mseq</span><span class="o">.</span><span class="n">end</span><span class="p">]:</span>
+                <span class="c1"># adjust for sequence indexes</span>
+                <span class="n">black_seq_start</span> <span class="o">=</span> <span class="n">black_interval</span><span class="o">.</span><span class="n">begin</span> <span class="o">-</span> <span class="n">mseq</span><span class="o">.</span><span class="n">start</span>
+                <span class="n">black_seq_end</span> <span class="o">=</span> <span class="n">black_interval</span><span class="o">.</span><span class="n">end</span> <span class="o">-</span> <span class="n">mseq</span><span class="o">.</span><span class="n">start</span>
+                <span class="n">black_seq_values</span> <span class="o">=</span> <span class="n">seq_cov_nt</span><span class="p">[</span><span class="n">black_seq_start</span><span class="p">:</span><span class="n">black_seq_end</span><span class="p">]</span>
+                <span class="n">seq_cov_nt</span><span class="p">[</span><span class="n">black_seq_start</span><span class="p">:</span><span class="n">black_seq_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                    <span class="n">black_seq_values</span><span class="p">,</span> <span class="o">-</span><span class="n">baseline_cov</span><span class="p">,</span> <span class="n">baseline_cov</span>
+                <span class="p">)</span>
+                <span class="c1"># seq_cov_nt[black_seq_start:black_seq_end] = baseline_cov</span>
+
+        <span class="c1"># set NaN's to baseline</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">interp_nan</span><span class="p">:</span>
+            <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">seq_cov_nt</span><span class="p">)</span>
+            <span class="n">seq_cov_nt</span><span class="p">[</span><span class="n">nan_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">baseline_cov</span>
+
+        <span class="c1"># crop</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">seq_cov_nt</span> <span class="o">=</span> <span class="n">seq_cov_nt</span><span class="p">[</span><span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span> <span class="p">:</span> <span class="o">-</span><span class="n">options</span><span class="o">.</span><span class="n">crop_bp</span><span class="p">]</span>
+
+        <span class="c1"># apply original transform (from borzoi manuscript)</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">transform_old</span><span class="p">:</span>
+            <span class="c1"># sum pool</span>
+            <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov_nt</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_length</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"sum"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"sum_sqrt"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">**</span><span class="mf">0.75</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"avg"</span><span class="p">]:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"mean_sqrt"</span><span class="p">,</span> <span class="s2">"avg_sqrt"</span><span class="p">]:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">**</span><span class="mf">0.75</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"median"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"max"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"peak"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">seq_cov</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s1">'ERROR: Unrecognized summary statistic "</span><span class="si">%s</span><span class="s1">".'</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span><span class="p">,</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># clip</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">clip_mask</span> <span class="o">=</span> <span class="n">seq_cov</span> <span class="o">&gt;</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span>
+                <span class="n">seq_cov</span><span class="p">[</span><span class="n">clip_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="n">seq_cov</span><span class="p">[</span><span class="n">clip_mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">seq_cov</span><span class="p">,</span> <span class="o">-</span><span class="n">options</span><span class="o">.</span><span class="n">clip</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">clip</span><span class="p">)</span>
+
+            <span class="c1"># scale</span>
+            <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">seq_cov</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># apply new (updated) transform</span>
+            <span class="c1"># scale</span>
+            <span class="n">seq_cov_nt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">seq_cov_nt</span>
+
+            <span class="c1"># sum pool</span>
+            <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov_nt</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_length</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">pool_width</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"sum"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"sum_sqrt"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">seq_cov</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"sum_exp75"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">seq_cov</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.75</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"mean"</span><span class="p">,</span> <span class="s2">"avg"</span><span class="p">]:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"mean_sqrt"</span><span class="p">,</span> <span class="s2">"avg_sqrt"</span><span class="p">]:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">seq_cov</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"median"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"max"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span> <span class="o">==</span> <span class="s2">"peak"</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">seq_cov</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float32"</span><span class="p">)</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">seq_cov</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s1">'ERROR: Unrecognized summary statistic "</span><span class="si">%s</span><span class="s1">".'</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">sum_stat</span><span class="p">,</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># clip</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">clip_mask</span> <span class="o">=</span> <span class="n">seq_cov</span> <span class="o">&gt;</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span>
+                <span class="n">seq_cov</span><span class="p">[</span><span class="n">clip_mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span>
+                    <span class="o">-</span> <span class="mi">1</span>
+                    <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">seq_cov</span><span class="p">[</span><span class="n">clip_mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_soft</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">seq_cov</span><span class="p">,</span> <span class="o">-</span><span class="n">options</span><span class="o">.</span><span class="n">clip</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">clip</span><span class="p">)</span>
+
+        <span class="c1"># clip float16 min/max</span>
+        <span class="n">seq_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">seq_cov</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+        <span class="c1"># save</span>
+        <span class="n">targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_cov</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">))</span>
+
+    <span class="c1"># close genome coverage file</span>
+    <span class="n">genome_cov_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># clip extreme values</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">)</span>
+    <span class="n">extreme_clip</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">clip_pct</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="o">-</span><span class="n">extreme_clip</span><span class="p">,</span> <span class="n">extreme_clip</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Targets sum: </span><span class="si">%.3f</span><span class="s2">"</span> <span class="o">%</span> <span class="n">targets</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">"float64"</span><span class="p">))</span>
+
+    <span class="c1"># write</span>
+    <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">seqs_cov_file</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">seqs_cov_open</span><span class="p">:</span>
+        <span class="n">seqs_cov_open</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+            <span class="s2">"targets"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s2">"gzip"</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="interp_nan">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.interp_nan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">interp_nan</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Linearly interpolate to fill NaN."""</span>
+
+    <span class="c1"># pad zeroes</span>
+    <span class="n">xp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">xp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+
+    <span class="c1"># find NaN</span>
+    <span class="n">x_nan</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">xp</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_nan</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># unnecessary</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># interpolate</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xp</span><span class="p">))</span>
+        <span class="n">interpolator</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span>
+            <span class="n">inds</span><span class="p">[</span><span class="o">~</span><span class="n">x_nan</span><span class="p">],</span> <span class="n">xp</span><span class="p">[</span><span class="o">~</span><span class="n">x_nan</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x_nan</span><span class="p">)</span>
+        <span class="n">xp</span><span class="p">[</span><span class="n">loc</span><span class="p">]</span> <span class="o">=</span> <span class="n">interpolator</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+
+        <span class="c1"># slice off pad</span>
+        <span class="k">return</span> <span class="n">xp</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="read_blacklist">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.read_blacklist">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_blacklist</span><span class="p">(</span><span class="n">blacklist_bed</span><span class="p">,</span> <span class="n">black_buffer</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Construct interval trees of blacklist</span>
+<span class="sd">    regions for each chromosome."""</span>
+    <span class="n">black_chr_trees</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">blacklist_bed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">blacklist_bed</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">blacklist_bed</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">chrm</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">black_buffer</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="n">black_buffer</span>
+
+            <span class="k">if</span> <span class="n">chrm</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">black_chr_trees</span><span class="p">:</span>
+                <span class="n">black_chr_trees</span><span class="p">[</span><span class="n">chrm</span><span class="p">]</span> <span class="o">=</span> <span class="n">intervaltree</span><span class="o">.</span><span class="n">IntervalTree</span><span class="p">()</span>
+
+            <span class="n">black_chr_trees</span><span class="p">[</span><span class="n">chrm</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">black_chr_trees</span></div>
+
+
+
+<div class="viewcode-block" id="CovFace">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.CovFace">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CovFace</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cov_file</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span> <span class="o">=</span> <span class="n">cov_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bigwig</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hdwig</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">cov_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">cov_ext</span> <span class="o">==</span> <span class="s2">".gz"</span><span class="p">:</span>
+            <span class="n">cov_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">cov_ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".bed"</span><span class="p">,</span> <span class="s2">".narrowpeak"</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_bed</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">cov_ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".bw"</span><span class="p">,</span> <span class="s2">".bigwig"</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span> <span class="o">=</span> <span class="n">pyBigWig</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bigwig</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">elif</span> <span class="n">cov_ext</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".hw"</span><span class="p">,</span> <span class="s2">".h5"</span><span class="p">,</span> <span class="s2">".hdf5"</span><span class="p">,</span> <span class="s2">".w5"</span><span class="p">,</span> <span class="s2">".wdf5"</span><span class="p">]:</span>
+            <span class="c1"># lazy: hdwig is optional and internal (pip install "baskerville-tf[hdwig]")</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">hdwig</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span> <span class="o">=</span> <span class="n">hdwig</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hdwig</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s1">'Cannot identify coverage file extension "</span><span class="si">%s</span><span class="s1">".'</span> <span class="o">%</span> <span class="n">cov_ext</span><span class="p">,</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CovFace.preprocess_bed">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.CovFace.preprocess_bed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">preprocess_bed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># read BED</span>
+        <span class="n">bed_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"chr"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for each chromosome</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">chrm</span> <span class="ow">in</span> <span class="n">bed_df</span><span class="o">.</span><span class="n">chr</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+            <span class="n">bed_chr_df</span> <span class="o">=</span> <span class="n">bed_df</span><span class="p">[</span><span class="n">bed_df</span><span class="o">.</span><span class="n">chr</span> <span class="o">==</span> <span class="n">chrm</span><span class="p">]</span>
+
+            <span class="c1"># find max pos</span>
+            <span class="n">pos_max</span> <span class="o">=</span> <span class="n">bed_chr_df</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+            <span class="c1"># initialize array</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="p">[</span><span class="n">chrm</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pos_max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"bool"</span><span class="p">)</span>
+
+            <span class="c1"># set peaks</span>
+            <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="n">bed_chr_df</span><span class="o">.</span><span class="n">itertuples</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="p">[</span><span class="n">peak</span><span class="o">.</span><span class="n">chr</span><span class="p">][</span><span class="n">peak</span><span class="o">.</span><span class="n">start</span> <span class="p">:</span> <span class="n">peak</span><span class="o">.</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="CovFace.read">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.CovFace.read">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bigwig</span><span class="p">:</span>
+            <span class="n">cov</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">numpy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float16"</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">chrm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="p">:</span>
+                <span class="c1"># hdwig slices lazily and returns true values, dividing out the</span>
+                <span class="c1"># storage scale; a BED preprocesses to arrays in memory.</span>
+                <span class="n">cov</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="p">[</span><span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hdwig</span>
+                    <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="p">[</span><span class="n">chrm</span><span class="p">][</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="c1"># handle mysterious inf's; NaN passes through untouched</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">cov</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">cov</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+
+                <span class="c1"># pad</span>
+                <span class="n">pad_zeros</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">cov</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pad_zeros</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">cov_pad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pad_zeros</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"bool"</span><span class="p">)</span>
+                    <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">cov</span><span class="p">,</span> <span class="n">cov_pad</span><span class="p">])</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">"WARNING: </span><span class="si">%s</span><span class="s2"> doesn't see </span><span class="si">%s</span><span class="s2">:</span><span class="si">%d</span><span class="s2">-</span><span class="si">%d</span><span class="s2">. Setting to all zeros."</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cov_file</span><span class="p">,</span> <span class="n">chrm</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"float16"</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cov</span></div>
+
+
+<div class="viewcode-block" id="CovFace.close">
+<a class="viewcode-back" href="../../../baskerville.scripts.html#baskerville.scripts.hound_data_read.CovFace.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bed</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cov_open</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="c1">################################################################################</span>
+<span class="c1"># __main__</span>
+<span class="c1">################################################################################</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Calico LLC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
