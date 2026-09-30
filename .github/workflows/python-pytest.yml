@@ -24,9 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --upgrade pip 'setuptools<81' cython
-          # pybedtools 0.10 is sdist-only, undeclared build deps, needs pkg_resources
-          python3 -m pip install --no-build-isolation 'pybedtools~=0.10.0'
+          python3 -m pip install --upgrade pip
           python3 -m pip install '.[dev]'
 
       - name: Run pytest
