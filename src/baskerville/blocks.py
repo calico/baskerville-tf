@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =========================================================================
-import pdb
+import sys
+
 import numpy as np
 import tensorflow as tf
 
@@ -1243,7 +1244,7 @@ def transformer_split(
         current_list = [current_left, current_center, current_right]
 
     else:
-        print("transformer_split not implemented for splits > 3", sys.stderr)
+        print("transformer_split not implemented for splits > 3", file=sys.stderr)
         exit(1)
 
     # concat along position axis
@@ -1419,9 +1420,7 @@ def transformer_tower(inputs, repeat=2, block_type="transformer", **kwargs):
       [batch_size, seq_length, features] output sequence
     """
 
-    if block_type == "lambda":
-        transformer_block = transformer_lambda
-    elif block_type == "swin":
+    if block_type == "swin":
         transformer_block = swin_transformer
     elif block_type == "transformer2":
         transformer_block = transformer2

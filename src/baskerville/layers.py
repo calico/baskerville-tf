@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =========================================================================
-import pdb
 import sys
-from typing import Optional, List
 
 import numpy as np
 import tensorflow as tf
@@ -924,7 +922,7 @@ class UpperTri(tf.keras.layers.Layer):
         seq_len = inputs.shape[1]
         output_dim = inputs.shape[-1]
 
-        if type(seq_len) == tf.compat.v1.Dimension:
+        if isinstance(seq_len, tf.compat.v1.Dimension):
             seq_len = seq_len.value
             output_dim = output_dim.value
 
@@ -1050,7 +1048,7 @@ class SwitchReverseTriu(tf.keras.layers.Layer):
 
         # infer original sequence length
         ut_len = x_ut.shape[1]
-        if type(ut_len) == tf.compat.v1.Dimension:
+        if isinstance(ut_len, tf.compat.v1.Dimension):
             ut_len = ut_len.value
         seq_len = int(np.sqrt(2 * ut_len + 0.25) - 0.5)
         seq_len += self.diagonal_offset
@@ -1212,16 +1210,12 @@ def activate(current, activation, verbose=False):
         print("activate:", activation)
     if activation == "relu":
         current = tf.keras.layers.ReLU()(current)
-    elif activation == "polyrelu":
-        current = PolyReLU()(current)
     elif activation == "gelu":
         current = tf.keras.activations.gelu(current, approximate=True)
     elif activation == "sigmoid":
         current = tf.keras.activations.sigmoid(current)
     elif activation == "tanh":
         current = tf.keras.activations.tanh(current)
-    elif activation == "exp":
-        current = Exp()(current)
     elif activation == "softplus":
         current = Softplus()(current)
     elif activation == "linear" or activation is None:

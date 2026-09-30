@@ -12,7 +12,7 @@ class OptimizedModel:
     def __init__(self, saved_model_dir=None, strand_pair=[]):
         self.loaded_model_fn = None
         self.strand_pair = strand_pair
-        if not saved_model_dir is None:
+        if saved_model_dir is not None:
             self.load_model(saved_model_dir)
 
     def predict(self, input_data):

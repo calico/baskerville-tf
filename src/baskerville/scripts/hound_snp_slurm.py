@@ -15,9 +15,7 @@
 # =========================================================================
 from optparse import OptionParser
 import os
-import pdb
 import pickle
-import shutil
 import subprocess
 import sys
 
@@ -147,10 +145,6 @@ def main():
 
     if len(args) != 3:
         parser.error("Must provide parameters and model files and VCF file")
-    else:
-        params_file = args[0]
-        model_file = args[1]
-        vcf_file = args[2]
 
     #######################################################
     # prep work

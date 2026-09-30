@@ -19,7 +19,7 @@ def exec_par(cmds, max_proc=None, verbose=False):
     running = 0
     p = []
 
-    if max_proc == None:
+    if max_proc is None:
         max_proc = len(cmds)
 
     if max_proc == 1:
@@ -43,7 +43,7 @@ def exec_par(cmds, max_proc=None, verbose=False):
             # are any jobs finished
             new_p = []
             for i in range(len(p)):
-                if p[i].poll() != None:
+                if p[i].poll() is not None:
                     running -= 1
                     finished += 1
                 else:

@@ -14,7 +14,6 @@
 # =========================================================================
 import glob
 import json
-import pdb
 import sys
 
 from natsort import natsorted
@@ -212,9 +211,6 @@ class SeqDataset:
             targets_nonzero = np.zeros(self.num_targets, dtype="bool")
 
         for seq_raw, targets_raw in dataset:
-            # infer seq_depth
-            seq_1hot = seq_raw.numpy().reshape((self.seq_length, -1))
-
             # infer num_targets
             targets1 = targets_raw.numpy().reshape(self.target_length, -1)
             if self.num_targets is None:

@@ -21,7 +21,6 @@ import h5py
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-import tensorflow as tf
 from tqdm import tqdm
 from tensorflow.keras import mixed_precision
 

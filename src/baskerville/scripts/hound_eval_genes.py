@@ -17,9 +17,7 @@ import argparse
 import gc
 import json
 import os
-import pdb
 import time
-from tqdm import tqdm
 
 from intervaltree import IntervalTree
 import numpy as np
@@ -121,7 +119,7 @@ def main():
     # set target groups
     if "group" not in targets_df.columns:
         targets_group = []
-        for ti in range(num_targets):
+        for ti in range(targets_df.shape[0]):
             description = targets_df.iloc[ti].description
             tg = description.split(":")[0]
             targets_group.append(tg)
@@ -134,7 +132,6 @@ def main():
 
     # prep strand
     targets_strand_df = dataset.targets_prep_strand(targets_df)
-    num_targets = targets_df.shape[0]
     num_targets_strand = targets_strand_df.shape[0]
 
     # set strand pairs (using new indexing)

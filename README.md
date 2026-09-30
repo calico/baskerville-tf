@@ -1,8 +1,10 @@
-# Baskerville
+# baskerville-tf
+
+> **Superseded** by [baskerville](https://github.com/calico/baskerville) (PyTorch). This TensorFlow version is maintained for [borzoi](https://github.com/calico/borzoi) reproducibility.
 
 #### Sequential regulatory activity predictions with deep convolutional neural networks.
 
-Baskerville provides researchers with tools to:
+baskerville-tf provides researchers with tools to:
 
 1. Train deep convolutional neural networks to predict regulatory activity along very long chromosome-scale DNA sequences
 2. Score variants according to their predicted influence on regulatory activity across the sequence and/or for specific genes.
@@ -10,9 +12,9 @@ Baskerville provides researchers with tools to:
 
 ---
 
-### Documentations
+### Documentation
 
-Documentation page: https://calico.github.io/baskerville/index.html
+Documentation page: https://calico.github.io/baskerville-tf/index.html
 
 - [Document page for transfer learning to hg38 tracks](docs/transfer_human/transfer.md)
 - [Document page for transfer learning to mm10 tracks](docs/transfer_mouse/transfer_mouse.md)
@@ -21,24 +23,17 @@ Documentation page: https://calico.github.io/baskerville/index.html
 
 ### Installation
 
-`git clone git@github.com:calico/baskerville.git`
-`cd baskerville`
-`pip install .`
-
-To set up the required environment variables:
-`cd baskerville`
-`conda activate <conda_env>`
-`./env_vars.sh`
-
-*Note:* Change the two lines of code at the top of './env_vars.sh' to the correct local paths.
-
-Alternatively, the environment variables can be set manually:
 ```sh
-export BASKERVILLE_DIR=/home/<user_path>/baskerville
+git clone git@github.com:calico/baskerville-tf.git
+cd baskerville-tf
+pip install .
+```
+
+The package installs as `baskerville-tf` and imports as `baskerville`. The command-line scripts live in `src/baskerville/scripts`; put them on your path:
+```sh
+export BASKERVILLE_DIR=/home/<user_path>/baskerville-tf
 export PATH=$BASKERVILLE_DIR/src/baskerville/scripts:$PATH
 export PYTHONPATH=$BASKERVILLE_DIR/src/baskerville/scripts:$PYTHONPATH
-
-export BASKERVILLE_CONDA=/home/<user>/anaconda3/etc/profile.d/conda.sh
 ```
 
 ---

@@ -16,7 +16,6 @@
 from optparse import OptionParser
 import gzip
 import json
-import pdb
 import os
 import random
 import shutil
@@ -765,7 +764,6 @@ def divide_contigs_folds(contigs, folds):
 
     # process contigs
     for ctg_len, ctg in length_contigs:
-
         # compute gap between current and aim
         fold_nt_gap = fold_nt_aim - fold_nt
         fold_nt_gap = np.clip(fold_nt_gap, 0, np.inf)
@@ -817,7 +815,6 @@ def divide_contigs_pct(contigs, test_pct, valid_pct, pct_abstain=0.2):
 
     # process contigs
     for ctg_len, ctg in length_contigs:
-
         # compute gap between current and aim
         test_nt_gap = max(0, test_nt_aim - test_nt)
         valid_nt_gap = max(0, valid_nt_aim - valid_nt)

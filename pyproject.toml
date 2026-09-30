@@ -3,44 +3,56 @@ requires = ["setuptools>=69.0.3", "setuptools_scm>=8.0.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "baskerville"
-description = "baskerville"
+name = "baskerville-tf"
+description = "TensorFlow sequence-to-activity models for regulatory genomics (superseded by the PyTorch baskerville)"
 authors = [
     {name = "Calico f(DNA)", email = "drk@calicolabs.com"},
 ]
 readme = "README.md"
-classifiers = ["License :: OSI Approved :: MIT License"]
+classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version"]
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "h5py~=3.10.0",
-    "intervaltree~=3.1.0",
-    "joblib~=1.1.1",
-    "matplotlib~=3.7.1",
-    "google-cloud-storage~=2.0.0",
+    "h5py~=3.10",
+    "intervaltree~=3.1",
+    "joblib~=1.1",
+    "matplotlib~=3.7",
+    "google-cloud-storage~=2.0",
     "natsort~=7.1.1",
     "networkx~=2.8.4",
     "numpy~=1.24.3",
     "pandas~=1.5.3",
     "pybigwig~=0.3.18",
-    "pybedtools~=0.10.0",
+    "pybedtools~=0.12.1",
     "pysam~=0.22.0",
     "qnorm~=0.8.1",
     "seaborn~=0.12.2",
     "scikit-learn~=1.2.2",
     "scipy~=1.9.1",
     "statsmodels~=0.13.5",
-    "tabulate~=0.8.10",
+    "tabulate~=0.8",
     "tensorflow~=2.15.0",
-    "tqdm~=4.65.0",
+    "tqdm~=4.65",
     "pyfaidx~=0.7.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest~=7.4.4",
+    "pytest~=7.4",
     "ruff~=0.1.11",
+]
+
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinxcontrib-apidoc",
+]
+
+hdwig = [
+    # Internal, not on PyPI. Only hound_data_read needs it (.hw/.w5 coverage
+    # files), and it imports lazily, so the base install stays resolvable.
+    "hdwig @ git+https://github.com/calico/hdwig.git",
 ]
 
 gpu = [
@@ -48,6 +60,12 @@ gpu = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/calico/baskerville"
+Homepage = "https://github.com/calico/baskerville-tf"
 
 [tool.setuptools_scm]
+
+[tool.ruff.lint]
+ignore = ["E731", "E741", "F403", "F405"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/baskerville/helpers/trt_optimized_model.py" = ["E722"]

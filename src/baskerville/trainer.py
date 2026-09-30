@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =========================================================================
+import sys
 import time
-import pdb
 
 import numpy as np
 import tensorflow as tf
@@ -118,10 +118,10 @@ class Trainer:
     ):
         self.params = params
         self.train_data = train_data
-        if type(self.train_data) is not list:
+        if not isinstance(self.train_data, list):
             self.train_data = [self.train_data]
         self.eval_data = eval_data
-        if type(self.eval_data) is not list:
+        if not isinstance(self.eval_data, list):
             self.eval_data = [self.eval_data]
         self.out_dir = out_dir
         self.log_dir = log_dir
@@ -581,7 +581,6 @@ class Trainer:
         valid_r2 = metrics.R2(num_targets, name="valid_r2")
 
         if self.strategy is None:
-
             if self.loss_scale:
 
                 @tf.function

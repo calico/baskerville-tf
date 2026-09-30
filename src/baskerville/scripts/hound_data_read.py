@@ -229,7 +229,6 @@ def main():
             seq_cov = options.scale * seq_cov
 
         else:  # apply new (updated) transform
-
             # scale
             seq_cov_nt = options.scale * seq_cov_nt
 
@@ -348,6 +347,7 @@ class CovFace:
         self.cov_file = cov_file
         self.bigwig = False
         self.bed = False
+        self.hdwig = False
 
         cov_ext = os.path.splitext(self.cov_file)[1].lower()
         if cov_ext == ".gz":
@@ -361,8 +361,12 @@ class CovFace:
             self.cov_open = pyBigWig.open(self.cov_file, "r")
             self.bigwig = True
 
-        elif cov_ext in [".h5", ".hdf5", ".w5", ".wdf5"]:
-            self.cov_open = h5py.File(self.cov_file, "r")
+        elif cov_ext in [".hw", ".h5", ".hdf5", ".w5", ".wdf5"]:
+            # lazy: hdwig is optional and internal (pip install "baskerville-tf[hdwig]")
+            import hdwig
+
+            self.cov_open = hdwig.open(self.cov_file)
+            self.hdwig = True
 
         else:
             print(
@@ -398,10 +402,17 @@ class CovFace:
 
         else:
             if chrm in self.cov_open:
-                cov = self.cov_open[chrm][start:end]
+                # hdwig slices lazily and returns true values, dividing out the
+                # storage scale; a BED preprocesses to arrays in memory.
+                cov = (
+                    self.cov_open[chrm, start:end]
+                    if self.hdwig
+                    else self.cov_open[chrm][start:end]
+                )
 
-                # handle mysterious inf's
-                cov = np.clip(cov, np.finfo(np.float16).min, np.finfo(np.float16).max)
+                # handle mysterious inf's; NaN passes through untouched
+                info = np.finfo(cov.dtype)
+                cov = np.clip(cov, info.min, info.max)
 
                 # pad
                 pad_zeros = end - start - len(cov)

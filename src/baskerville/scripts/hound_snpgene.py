@@ -14,7 +14,6 @@
 # limitations under the License.
 # =========================================================================
 from optparse import OptionParser
-import pdb
 import os
 import tempfile
 import shutil

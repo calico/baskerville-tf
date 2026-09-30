@@ -17,8 +17,6 @@ import argparse
 import json
 import os
 import shutil
-import re
-import sys
 
 import numpy as np
 import pandas as pd
@@ -28,7 +26,6 @@ from tensorflow.keras import mixed_precision
 from baskerville import dataset
 from baskerville import seqnn
 from baskerville import trainer
-from baskerville import layers
 from baskerville import transfer
 
 """
@@ -202,7 +199,6 @@ def main():
         # adapters #
         ############
         elif transfer_mode == "adapter":
-
             # attention adapter
             if transfer_adapter is not None:
                 if transfer_adapter == "houlsby":
@@ -293,7 +289,6 @@ def main():
         # post-training adjustments #
         #############################
         if transfer_mode == "adapter":
-
             # for: houlsby and houlsby_se, overwrite json file
             if transfer_adapter == "houlsby":
                 transfer.modify_json(
@@ -350,7 +345,6 @@ def main():
         strategy = tf.distribute.MirroredStrategy()
 
         with strategy.scope():
-
             if not args.keras_fit:
                 # distribute data
                 for di in range(len(args.data_dirs)):

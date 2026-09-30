@@ -24,7 +24,6 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from baskerville import dataset
-from baskerville import dna
 from baskerville import seqnn
 from baskerville import vcf
 
@@ -144,7 +143,7 @@ def main():
 
     _, preds_length, num_targets = seqnn_model.model.output.shape
 
-    if type(preds_length) == tf.compat.v1.Dimension:
+    if isinstance(preds_length, tf.compat.v1.Dimension):
         preds_length = preds_length.value
         num_targets = num_targets.value
 

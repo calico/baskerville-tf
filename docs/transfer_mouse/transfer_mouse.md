@@ -1,7 +1,7 @@
 ## Transfer Learning Tutorial (Mouse mm10 tracks)
 
 ### Required Software
-- baskerville
+- baskerville-tf
 
 ### Prepare Files
 
@@ -12,7 +12,7 @@ To prepare the tracks to w5 file, see the [Document page for transfer learning t
 Set data_path to your preferred directory:
 
 ```bash
-baskerville_path='/home/yuanh/programs/source/python_packages/baskerville'
+baskerville_path='/home/<user_path>/baskerville-tf'
 data_path='/home/yuanh/analysis/Borzoi_transfer/tutorial/mouse/data'
 
 mkdir -p ${data_path}

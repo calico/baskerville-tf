@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # =========================================================================
-import pdb
 import gc
 import sys
 import time
@@ -1216,14 +1215,14 @@ class SeqNN:
             self.model_strides[-1] = int(self.model_strides[-1])
 
             # determine predictions length before cropping
-            if type(sequence.shape[1]) == tf.compat.v1.Dimension:
+            if isinstance(sequence.shape[1], tf.compat.v1.Dimension):
                 target_full_length = sequence.shape[1].value // self.model_strides[-1]
             else:
                 target_full_length = sequence.shape[1] // self.model_strides[-1]
 
             # determine predictions length after cropping
             self.target_lengths.append(model.outputs[0].shape[1])
-            if type(self.target_lengths[-1]) == tf.compat.v1.Dimension:
+            if isinstance(self.target_lengths[-1], tf.compat.v1.Dimension):
                 self.target_lengths[-1] = self.target_lengths[-1].value
             self.target_crops.append(
                 (target_full_length - self.target_lengths[-1]) // 2

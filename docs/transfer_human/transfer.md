@@ -1,7 +1,7 @@
 ## Transfer Learning Tutorial (Human hg38 tracks)
 
 ### Required Software
-- baskerville
+- baskerville-tf
 - bamCoverage from [deepTools](https://github.com/deeptools/deepTools/tree/master) is required to make BigWig files.
 
 ### Download Tutorial Data
@@ -10,7 +10,7 @@
 Set data_path to your preferred directory:
 
 ```bash
-baskerville_path='/path/to/your/baskerville'  # Update this to your baskerville installation path
+baskerville_path='/path/to/your/baskerville-tf'  # Update this to your baskerville-tf clone path
 data_path='/path/to/your/data'  # Update this to your preferred data directory
 bam_folder=${data_path}/bam
 bw_folder=${data_path}/bw
@@ -120,9 +120,9 @@ Note: Make sure to edit the `data_path` variable in `make_tfr.sh` to match your 
 
 Similar to Borzoi training, arguments for transfer learning are specified in the params.json file. Add an additional `transfer` section in the parameter json file to allow transfer learning. For the transfer learning rate, we suggest lowering the lr to 1e-5 for full fine-tuning, and keeping the original lr for other methods. For batch size, we suggest a batch size of 1 to reduce GPU memory for linear probing or adapter-based methods. Here's the `transfer` arguments for different transfer methods. 
 
-Example params.json files for transfer learning of Borzoi-lite are located: baskerville/tests/data/transfer/json/borzoilite_\*.json
+Example params.json files for transfer learning of Borzoi-lite are located: baskerville-tf/tests/data/transfer/json/borzoilite_\*.json
 
-Example params.json files for transfer learning of full Borzoi are located: baskerville/tests/data/transfer/json/borzoi_\*.json
+Example params.json files for transfer learning of full Borzoi are located: baskerville-tf/tests/data/transfer/json/borzoi_\*.json
 
 
 **Full fine-tuning**:

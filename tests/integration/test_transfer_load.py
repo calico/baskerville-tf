@@ -19,7 +19,6 @@ def test_housby():
     targets_df = pd.read_csv(targets_file, index_col=0, sep="\t")
     if "strand_pair" in targets_df.columns:
         params_model["strand_pair"] = [np.array(targets_df.strand_pair)]
-    strand_pair = np.array(targets_df.strand_pair)
 
     seqnn_model = seqnn.SeqNN(params_model)
     seqnn_model.restore(model_file)
@@ -42,7 +41,6 @@ def test_se4():
     targets_df = pd.read_csv(targets_file, index_col=0, sep="\t")
     if "strand_pair" in targets_df.columns:
         params_model["strand_pair"] = [np.array(targets_df.strand_pair)]
-    strand_pair = np.array(targets_df.strand_pair)
 
     seqnn_model = seqnn.SeqNN(params_model)
     seqnn_model.restore(model_file)
